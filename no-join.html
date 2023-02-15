@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>No join</title>
+  <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
+</head>
+<body>
+<div id="drawing"></div>
+</body>
+</html>
+<script>
+    // Global parameters.
+    // We may want to turn these into HTML sliders.
+    var height = 600;
+    var width = 600;
+    var edgeLength = 250;
+    var standaloneFillOpacity = 0.5;
+    var standaloneStrokeOpacity = 1;
+    var standaloneStrokeWidth = 2;
+
+    // Init SVG
+    var svg = SVG().addTo('#drawing')
+        .viewbox(-width/2, -height/2, width, height)
+        .size(width, height);
+
+    // Edge class
+    class Edge {
+        constructor(radius, angle, color) {
+            this.length = edgeLength;
+            this.radius = radius;
+            this.angle = angle;
+            this.color = color;
+            this.standaloneGeometry = null;
+        }
+
+        init() {
+            if (this.standaloneGeometry === null) {
+                this.standaloneGeometry = svg
+                    .rect(this.length, this.radius)
+                    .fill({color: this.color, opacity: standaloneFillOpacity})
+                    .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
+                this.applyTransform_();
+            }
+        }
+
+        setAngle(angle) {
+            this.angle = angle;
+            this.applyTransform_();
+        }
+
+        setRadius(radius) {
+            this.radius = radius;
+            this.applyTransform_();
+        }
+
+        applyTransform_() {
+            if (this.standaloneGeometry !== null) {
+                this.standaloneGeometry.transform({
+                    origin: [0, this.radius/2],
+                    translate: [0, -this.radius/2],
+                    rotate: this.angle,
+                });
+            }
+        }
+    }
+
+    // Scenario
+    // TODO: or perhaps just some JSON-like to avoid the "init" functions?
+    /*
+    var scenario = [
+        { 'radius': 30, 'angle': 0, 'color': 'blue' },
+        { 'radius': 70, 'angle': 100, 'color': 'red' },
+    ];
+    */
+    var scenario = [
+        new Edge(30, 0, 'blue'),
+        new Edge(70, 0, 'red')];
+
+    function init() {
+        // Draw edges with initial geometry
+        scenario[0].init();
+        scenario[1].init();
+
+        // Draw center
+        svg.circle(10).center(0, 0);
+    }
+    init();
+
+    // Perform your animation here.
+    // t is in milliseconds.
+    //
+    function animate(t) {
+
+        // Update scenario
+        scenario[0].setAngle(t/100);
+
+        // TODO: compute joins, etc.
+
+        // Return whether to stop the animation
+        return false;
+    }
+
+    let start, previousTimeStamp;
+    function animationLoop(timestamp) {
+        if (start === undefined) {
+            start = timestamp;
+        }
+        const elapsed = timestamp - start;
+        if (previousTimeStamp !== timestamp) {
+            done = animate(elapsed);
+        }
+        previousTimeStamp = timestamp;
+        if (!done) {
+            window.requestAnimationFrame(animationLoop);
+        }
+    }
+    window.requestAnimationFrame(animationLoop);
+
+</script>
