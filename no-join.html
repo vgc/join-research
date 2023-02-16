@@ -6,8 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
 </head>
 <body>
-<input id="standaloneFillOpacity" type="range" value=0.5 min=0 max=1 step="0.01"/>standaloneFillOpacity<br/>
-<input id="standaloneStrokeOpacity" type="range" value=1.0 min=0 max=1 step="0.01"/>standaloneStrokeOpacity<br/>
+<input id="standaloneGeometryFillOpacity" type="range" value=0.5 min=0 max=1 step="0.01"/>standaloneGeometryFillOpacity<br/>
+<input id="standaloneGeometryStrokeOpacity" type="range" value=1.0 min=0 max=1 step="0.01"/>standaloneGeometryStrokeOpacity<br/>
 <div id="drawing"></div>
 </body>
 </html>
@@ -25,9 +25,9 @@
     var height = 600;
     var width = 600;
     var edgeLength = 250;
-    var standaloneFillOpacity = 0.5;
-    var standaloneStrokeOpacity = 1;
-    var standaloneStrokeWidth = 2;
+    var standaloneGeometryFillOpacity = 0.5;
+    var standaloneGeometryStrokeOpacity = 1;
+    var standaloneGeometryStrokeWidth = 2;
     var origin = new Vec2(0, 0)
 
     function updateEdgesStyle() {
@@ -36,12 +36,12 @@
         }
     }
 
-    document.querySelector("#standaloneFillOpacity").addEventListener("input", (event) => {
-        standaloneFillOpacity = event.target.value;
+    document.querySelector("#standaloneGeometryFillOpacity").addEventListener("input", (event) => {
+        standaloneGeometryFillOpacity = event.target.value;
         updateEdgesStyle();
     });
-    document.querySelector("#standaloneStrokeOpacity").addEventListener("input", (event) => {
-        standaloneStrokeOpacity = event.target.value;
+    document.querySelector("#standaloneGeometryStrokeOpacity").addEventListener("input", (event) => {
+        standaloneGeometryStrokeOpacity = event.target.value;
         updateEdgesStyle();
     });
 
@@ -60,12 +60,12 @@
             this.transformGroup = svg.group();
             this.standaloneGeometry = svg
                 .rect(this.length, this.radius)
-                .fill({color: this.color, opacity: standaloneFillOpacity})
-                .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
+                .fill({color: this.color, opacity: standaloneGeometryFillOpacity})
+                .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.transformGroup.add(this.standaloneGeometry);
             this.centerLine = svg
                 .line(0, this.radius/2, this.length, this.radius/2)
-                .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
+                .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.centerLine.attr('stroke-dasharray', "4");
             this.transformGroup.add(this.centerLine);
             this.applyTransform_();
@@ -93,9 +93,9 @@
         }
 
         updateStyle_() {
-            this.standaloneGeometry.attr('fill-opacity', standaloneFillOpacity);
-            this.standaloneGeometry.attr('stroke-opacity', standaloneStrokeOpacity);
-            this.centerLine.attr('stroke-opacity', standaloneStrokeOpacity);
+            this.standaloneGeometry.attr('fill-opacity', standaloneGeometryFillOpacity);
+            this.standaloneGeometry.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
+            this.centerLine.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
         }
     }
 
@@ -170,10 +170,10 @@
             const d = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(Math.max(0, e.rightOutlineIntersections[e.rightOutlineIntersections.length-1][1])));
             joinContainer.line(
                 a.x, a.y, b.x, b.y
-            ).stroke({color: e.color, opacity: standaloneFillOpacity, width: standaloneStrokeWidth}).attr('stroke-dasharray', "8 1");
+            ).stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
             joinContainer.line(
                 c.x, c.y, d.x, d.y
-            ).stroke({color: e.color, opacity: standaloneFillOpacity, width: standaloneStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
+            ).stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
             for (intersect of e.leftOutlineIntersections) {
                 const a = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(intersect[1]));
                 joinContainer.circle(5).fill({color: 'black'}).center(a.x, a.y);
@@ -187,10 +187,10 @@
             const rightBorderExtensionTarget = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
             joinContainer.line(
                 e.leftBorderOrigin.x, e.leftBorderOrigin.y, leftBorderExtensionTarget.x, leftBorderExtensionTarget.y
-            ).stroke({color: 'black', width: standaloneStrokeWidth}).attr('stroke-dasharray', "8 1");
+            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
             joinContainer.line(
                 e.rightBorderOrigin.x, e.rightBorderOrigin.y, rightBorderExtensionTarget.x, rightBorderExtensionTarget.y
-            ).stroke({color: 'black', width: standaloneStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
+            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
         }
     }
     var algorithms = [algorithmShowAllOutlineIntersections];
