@@ -30,10 +30,17 @@
             this.radius = edgeParams.radius;
             this.angle = edgeParams.angle;
             this.color = edgeParams.color;
+            this.transformGroup = svg.group();
             this.standaloneGeometry = svg
                 .rect(this.length, this.radius)
                 .fill({color: this.color, opacity: standaloneFillOpacity})
                 .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
+            this.transformGroup.add(this.standaloneGeometry);
+            this.centerLine = svg
+                .line(0, this.radius/2, this.length, this.radius/2)
+                .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
+            this.centerLine.attr('stroke-dasharray', "4");
+            this.transformGroup.add(this.centerLine);
             this.applyTransform_();
         }
 
@@ -48,7 +55,7 @@
         }
 
         applyTransform_() {
-            this.standaloneGeometry.transform({
+            this.transformGroup.transform({
                 origin: [0, this.radius/2],
                 translate: [0, -this.radius/2],
                 rotate: this.angle,
