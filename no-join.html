@@ -8,6 +8,7 @@
 <body>
 <input id="standaloneGeometryFillOpacity" type="range" value=0.5 min=0 max=1 step="0.01"/>standaloneGeometryFillOpacity<br/>
 <input id="standaloneGeometryStrokeOpacity" type="range" value=1.0 min=0 max=1 step="0.01"/>standaloneGeometryStrokeOpacity<br/>
+<input id="cutMaxCoefficient" type="range" value=1.0 min=0 max=5 step="0.01"/>cutMaxCoefficient<br/>
 <div id="drawing"></div>
 </body>
 </html>
@@ -30,19 +31,26 @@
     var standaloneGeometryStrokeWidth = 2;
     var origin = new Vec2(0, 0)
 
-    function updateEdgesStyle() {
+    function updateEdges() {
         for (e of edges) {
-            e.updateStyle_();
+            e.update_();
         }
     }
 
     document.querySelector("#standaloneGeometryFillOpacity").addEventListener("input", (event) => {
         standaloneGeometryFillOpacity = event.target.value;
-        updateEdgesStyle();
+        updateEdges();
     });
     document.querySelector("#standaloneGeometryStrokeOpacity").addEventListener("input", (event) => {
         standaloneGeometryStrokeOpacity = event.target.value;
-        updateEdgesStyle();
+        updateEdges();
+    });
+
+    // algorithm parameters
+    var cutMaxCoefficient = 1.0;
+    document.querySelector("#cutMaxCoefficient").addEventListener("input", (event) => {
+        cutMaxCoefficient = event.target.value;
+        updateEdges();
     });
 
     // Init SVG
@@ -58,16 +66,22 @@
             this.angle = edgeParams.angle;
             this.color = edgeParams.color;
             this.transformGroup = svg.group();
-            this.standaloneGeometry = svg
+            this.standaloneGeometry = this.transformGroup
                 .rect(this.length, this.radius)
                 .fill({color: this.color, opacity: standaloneGeometryFillOpacity})
                 .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
-            this.transformGroup.add(this.standaloneGeometry);
-            this.centerLine = svg
+            this.centerLine = this.transformGroup
                 .line(0, this.radius/2, this.length, this.radius/2)
                 .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.centerLine.attr('stroke-dasharray', "4");
-            this.transformGroup.add(this.centerLine);
+            this.leftCutMaxPoint = this.transformGroup
+                .circle(5)
+                .center(cutMaxCoefficient * this.radius, 0)
+                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
+            this.rightCutMaxPoint = this.transformGroup
+                .circle(5)
+                .center(cutMaxCoefficient * this.radius, this.radius)
+                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
             this.applyTransform_();
         }
 
@@ -92,10 +106,18 @@
             this.rightBorderOrigin = new Vec2(0, this.radius/2).rotated(origin, this.angle);
         }
 
-        updateStyle_() {
+        update_() {
             this.standaloneGeometry.attr('fill-opacity', standaloneGeometryFillOpacity);
             this.standaloneGeometry.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
             this.centerLine.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
+            this.leftCutMaxPoint
+                .center(cutMaxCoefficient * this.radius, 0)
+                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
+            this.rightCutMaxPoint
+                .center(cutMaxCoefficient * this.radius, this.radius)
+                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
+            this.leftCutMaxPoint.attr('fill-opacity', standaloneGeometryFillOpacity);
+            this.rightCutMaxPoint.attr('fill-opacity', standaloneGeometryFillOpacity);
         }
     }
 
