@@ -192,6 +192,19 @@
         }
     }
 
+    function algorithmShowExtendedOutlines(joinContainer, angleSortedEdges) {
+        for (const e of angleSortedEdges) {
+            const leftBorderExtensionTarget = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
+            const rightBorderExtensionTarget = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
+            joinContainer.line(
+                e.leftBorderOrigin.x, e.leftBorderOrigin.y, leftBorderExtensionTarget.x, leftBorderExtensionTarget.y
+            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
+            joinContainer.line(
+                e.rightBorderOrigin.x, e.rightBorderOrigin.y, rightBorderExtensionTarget.x, rightBorderExtensionTarget.y
+            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
+        }
+    }
+
     function algorithmShowAllOutlineIntersections(joinContainer, angleSortedEdges) {
         for (const e of angleSortedEdges) {
             const a = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(e.leftOutlineIntersections[0][1]));
@@ -211,19 +224,9 @@
         }
     }
 
-    function algorithmIntersectOutlinesInEachSlice(joinContainer, angleSortedEdges) {
-        for (const e of angleSortedEdges) {
-            const leftBorderExtensionTarget = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
-            const rightBorderExtensionTarget = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
-            joinContainer.line(
-                e.leftBorderOrigin.x, e.leftBorderOrigin.y, leftBorderExtensionTarget.x, leftBorderExtensionTarget.y
-            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
-            joinContainer.line(
-                e.rightBorderOrigin.x, e.rightBorderOrigin.y, rightBorderExtensionTarget.x, rightBorderExtensionTarget.y
-            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
-        }
-    }
-    var algorithms = [algorithmShowAllOutlineIntersections];
+    var algorithms = [
+        algorithmShowExtendedOutlines,
+        algorithmShowAllOutlineIntersections];
 
     var joinContainer = svg.group();
     // Perform your animation here.
@@ -240,7 +243,7 @@
 
         // TODO: compute joins, etc.
         joinContainer.clear();
-        algorithms[0](joinContainer, angleSortedEdges)
+        algorithms[1](joinContainer, angleSortedEdges)
 
         // Return whether to stop the animation
         return false;
