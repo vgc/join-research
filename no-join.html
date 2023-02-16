@@ -150,7 +150,7 @@
     init();
 
     function sortByAngleAndAssignIndex(edges) {
-        angleSortedEdges = [...edges].sort(function(a, b){return b.angle - a.angle});
+        angleSortedEdges = [...edges].sort(function(a, b){return a.angle - b.angle});
         for (let i = 0; i < edges.length; i++) {
             angleSortedEdges[i].index = i;
         }
