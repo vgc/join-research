@@ -233,9 +233,52 @@
         }
     }
 
+    function algorithmPerSlice0(joinContainer, angleSortedEdges) {
+        for (let i = 0; i < angleSortedEdges.length; ++i) {
+            let j = i + 1;
+            if (j >= angleSortedEdges.length) {
+                j = 0;
+            }
+            let e0 = angleSortedEdges[i];
+            let e1 = angleSortedEdges[j];
+            let intersection0 = e0.rightOutlineIntersections.find(function(a){ return a[0] == j})
+            let intersection1 = e1.leftOutlineIntersections.find(function(a){ return a[0] == i})
+            if (intersection0 && intersection1) {
+                let t0 = intersection0[1];
+                let t1 = intersection1[1];
+                const a = Vec2.ADD(e0.rightBorderOrigin, e0.outgoingDirection.scaled(t0));
+                joinContainer.circle(6).fill({color: 'black'}).center(a.x, a.y);
+
+                const isExt0 = t0 <= 0;
+                const isExt1 = t1 <= 0;
+                const cutMax0 = e0.cutMaxCoefficient * e0.radius;
+                const cutMax1 = e1.cutMaxCoefficient * e1.radius;
+
+                if (isExt0 && t1 > cutMax1 && e0.radius >= e1.radius) {
+                    //
+                }
+                else if (isExt0 && t1 > cutMax1 && e0.radius >= e1.radius) {
+                    //
+                }
+                else {
+
+                }
+
+            }
+            else if (Vec2.DOT(e0.outgoingDirection, e1.outgoingDirection) < 0) {
+                // colinear join
+            }
+            else {
+                // colinear overlap
+            }
+        }
+    }
+
     var algorithms = [
         algorithmShowExtendedOutlines,
-        algorithmShowAllOutlineIntersections];
+        algorithmShowAllOutlineIntersections,
+        algorithmPerSlice0
+    ];
 
     var joinContainer = svg.group();
     // Perform your animation here.
