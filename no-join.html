@@ -3,6 +3,7 @@
 <head>
   <title>No join</title>
   <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
+  <script src="https://unpkg.com/geometric@2.5.0/build/geometric.min.js"></script>
 </head>
 <body>
 <div id="drawing"></div>
@@ -60,12 +61,9 @@
             this.transformGroup.transform({
                 origin: [0, this.radius/2],
                 translate: [0, -this.radius/2],
-                rotate: this.angle / Math.PI * 180,
+                rotate: this.angle,
             });
-            const ca = Math.cos(this.angle)
-            const sa = Math.sin(this.angle)
-            this.centerLineEndPoint[0] = ca*this.length;
-            this.centerLineEndPoint[1] = sa*this.length;
+            this.centerLineEndPoint = geometric.pointRotate([this.length, 0], this.angle);
         }
     }
 
@@ -117,7 +115,7 @@
     function animate(t) {
 
         // Update scenario
-        edges[0].setAngle(t/2000);
+        edges[0].setAngle(t/200);
 
         // TODO: compute joins, etc.
 
