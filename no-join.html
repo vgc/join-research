@@ -219,7 +219,7 @@
             ).stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
             for (intersect of e.leftOutlineIntersections) {
                 const a = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(intersect[1]));
-                joinContainer.circle(5).fill({color: 'black'}).center(a.x, a.y);
+                joinContainer.circle(5).fill({color: e.color, opacity: 0.5}).center(a.x, a.y);
             }
         }
     }
