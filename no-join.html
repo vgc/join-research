@@ -6,6 +6,8 @@
   <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
 </head>
 <body>
+<input id="standaloneFillOpacity" type="range" value=0.5 min=0 max=1 step="0.01"/>standaloneFillOpacity<br/>
+<input id="standaloneStrokeOpacity" type="range" value=1.0 min=0 max=1 step="0.01"/>standaloneStrokeOpacity<br/>
 <div id="drawing"></div>
 </body>
 </html>
@@ -27,6 +29,21 @@
     var standaloneStrokeOpacity = 1;
     var standaloneStrokeWidth = 2;
     var origin = new Vec2(0, 0)
+
+    function updateEdgesStyle() {
+        for (e of edges) {
+            e.updateStyle_();
+        }
+    }
+
+    document.querySelector("#standaloneFillOpacity").addEventListener("input", (event) => {
+        standaloneFillOpacity = event.target.value;
+        updateEdgesStyle();
+    });
+    document.querySelector("#standaloneStrokeOpacity").addEventListener("input", (event) => {
+        standaloneStrokeOpacity = event.target.value;
+        updateEdgesStyle();
+    });
 
     // Init SVG
     var svg = SVG().addTo('#drawing')
@@ -74,6 +91,12 @@
             this.leftBorderOrigin = new Vec2(0, -this.radius/2).rotated(origin, this.angle);
             this.rightBorderOrigin = new Vec2(0, this.radius/2).rotated(origin, this.angle);
         }
+
+        updateStyle_() {
+            this.standaloneGeometry.attr('fill-opacity', standaloneFillOpacity);
+            this.standaloneGeometry.attr('stroke-opacity', standaloneStrokeOpacity);
+            this.centerLine.attr('stroke-opacity', standaloneStrokeOpacity);
+        }
     }
 
     //function intersectRays(positionA, directionA, positionB, directionB) {
@@ -87,7 +110,7 @@
             'edges': [
                 { 'radius': 30, 'angle': 0, 'color': 'blue' },
                 { 'radius': 70, 'angle': 0, 'color': 'red' },
-                { 'radius': 50, 'angle': 100, 'color': 'green' },
+                { 'radius': 50, 'angle': 2.5, 'color': 'green' },
             ]
         }
     );
