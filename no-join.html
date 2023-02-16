@@ -25,22 +25,16 @@
 
     // Edge class
     class Edge {
-        constructor(radius, angle, color) {
+        constructor(edgeParams) {
             this.length = edgeLength;
-            this.radius = radius;
-            this.angle = angle;
-            this.color = color;
-            this.standaloneGeometry = null;
-        }
-
-        init() {
-            if (this.standaloneGeometry === null) {
-                this.standaloneGeometry = svg
-                    .rect(this.length, this.radius)
-                    .fill({color: this.color, opacity: standaloneFillOpacity})
-                    .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
-                this.applyTransform_();
-            }
+            this.radius = edgeParams.radius;
+            this.angle = edgeParams.angle;
+            this.color = edgeParams.color;
+            this.standaloneGeometry = svg
+                .rect(this.length, this.radius)
+                .fill({color: this.color, opacity: standaloneFillOpacity})
+                .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
+            this.applyTransform_();
         }
 
         setAngle(angle) {
@@ -54,35 +48,44 @@
         }
 
         applyTransform_() {
-            if (this.standaloneGeometry !== null) {
-                this.standaloneGeometry.transform({
-                    origin: [0, this.radius/2],
-                    translate: [0, -this.radius/2],
-                    rotate: this.angle,
-                });
-            }
+            this.standaloneGeometry.transform({
+                origin: [0, this.radius/2],
+                translate: [0, -this.radius/2],
+                rotate: this.angle,
+            });
         }
     }
 
     // Scenario
     // TODO: or perhaps just some JSON-like to avoid the "init" functions?
+
+    var scenarios = [];
+    scenarios.push(
+        {
+            'edges': [
+                { 'radius': 30, 'angle': 0, 'color': 'blue' },
+                { 'radius': 70, 'angle': 0, 'color': 'red' },
+            ]
+        }
+    );
+
+    var edges = [];
+
     /*
-    var scenario = [
-        { 'radius': 30, 'angle': 0, 'color': 'blue' },
-        { 'radius': 70, 'angle': 100, 'color': 'red' },
-    ];
-    */
     var scenario = [
         new Edge(30, 0, 'blue'),
         new Edge(70, 0, 'red')];
+    */
 
     function init() {
         // Draw edges with initial geometry
-        scenario[0].init();
-        scenario[1].init();
+        for (const edgeParams of scenarios[0].edges) {
+            console.log(edgeParams);
+            edges.push(new Edge(edgeParams));
+        }
 
         // Draw center
-        svg.circle(10).center(0, 0);
+        svg.circle(8).center(0, 0);
     }
     init();
 
@@ -92,7 +95,7 @@
     function animate(t) {
 
         // Update scenario
-        scenario[0].setAngle(t/100);
+        edges[0].setAngle(t/100);
 
         // TODO: compute joins, etc.
 
