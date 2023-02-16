@@ -36,12 +36,14 @@
                 .fill({color: this.color, opacity: standaloneFillOpacity})
                 .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
             this.transformGroup.add(this.standaloneGeometry);
+            this.centerLineEndPoint = [this.length, 0]
             this.centerLine = svg
                 .line(0, this.radius/2, this.length, this.radius/2)
                 .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
             this.centerLine.attr('stroke-dasharray', "4");
             this.transformGroup.add(this.centerLine);
             this.applyTransform_();
+
         }
 
         setAngle(angle) {
@@ -58,8 +60,12 @@
             this.transformGroup.transform({
                 origin: [0, this.radius/2],
                 translate: [0, -this.radius/2],
-                rotate: this.angle,
+                rotate: this.angle / Math.PI * 180,
             });
+            const ca = Math.cos(this.angle)
+            const sa = Math.sin(this.angle)
+            this.centerLineEndPoint[0] = ca*this.length;
+            this.centerLineEndPoint[1] = sa*this.length;
         }
     }
 
@@ -95,15 +101,28 @@
     }
     init();
 
+    function algorithmIntersectOutlinesInEachSlice(joinContainer) {
+        for (const e of edges) {
+            joinContainer.line(
+                0, 0, -e.centerLineEndPoint[0], -e.centerLineEndPoint[1]
+            ).stroke({color: 'black', width: standaloneStrokeWidth});
+        }
+    }
+    var algorithms = [algorithmIntersectOutlinesInEachSlice];
+
+    var joinContainer = svg.group();
     // Perform your animation here.
     // t is in milliseconds.
     //
     function animate(t) {
 
         // Update scenario
-        edges[0].setAngle(t/100);
+        edges[0].setAngle(t/2000);
 
         // TODO: compute joins, etc.
+
+        joinContainer.clear();
+        algorithms[0](joinContainer)
 
         // Return whether to stop the animation
         return false;
