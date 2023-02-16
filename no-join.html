@@ -174,8 +174,12 @@
                 const ddetInv = 1 / ddet;
                 const t0 = Vec2.DET(w, e1.outgoingDirection) * ddetInv;
                 const t1 = Vec2.DET(w, e0.outgoingDirection) * ddetInv;
-                e0.leftOutlineIntersections.push([j, t0]);
-                e1.rightOutlineIntersections.push([i, t1]);
+                if (isFinite(t0)) {
+                    e0.leftOutlineIntersections.push([j, t0]);
+                }
+                if (isFinite(t1)) {
+                    e1.rightOutlineIntersections.push([i, t1]);
+                }
             }
         }
         for (let e of edges) {
