@@ -44,7 +44,6 @@
             this.centerLine.attr('stroke-dasharray', "4");
             this.transformGroup.add(this.centerLine);
             this.applyTransform_();
-
         }
 
         setAngle(angle) {
@@ -68,8 +67,6 @@
     }
 
     // Scenario
-    // TODO: or perhaps just some JSON-like to avoid the "init" functions?
-
     var scenarios = [];
     scenarios.push(
         {
@@ -81,13 +78,6 @@
     );
 
     var edges = [];
-
-    /*
-    var scenario = [
-        new Edge(30, 0, 'blue'),
-        new Edge(70, 0, 'red')];
-    */
-
     function init() {
         // Draw edges with initial geometry
         for (const edgeParams of scenarios[0].edges) {
@@ -118,7 +108,6 @@
         edges[0].setAngle(t/200);
 
         // TODO: compute joins, etc.
-
         joinContainer.clear();
         algorithms[0](joinContainer)
 
