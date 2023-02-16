@@ -3,12 +3,20 @@
 <head>
   <title>No join</title>
   <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
 </head>
 <body>
 <div id="drawing"></div>
 </body>
 </html>
 <script>
+    // Aliases for catsums's vector2 types
+    const Vec2 = VECTOR2.Vector2;
+	const Line2 = VECTOR2.Vector2Line;
+	const Rect2 = VECTOR2.Rect2;
+	const Transform2 = VECTOR2.Transform2;
+    Vec2.prototype.isNormalized = Vec2.prototype.isNormalised
+
     // Global parameters.
     // We may want to turn these into HTML sliders.
     var height = 600;
@@ -17,6 +25,7 @@
     var standaloneFillOpacity = 0.5;
     var standaloneStrokeOpacity = 1;
     var standaloneStrokeWidth = 2;
+    const origin = new Vec2(0, 0)
 
     // Init SVG
     var svg = SVG().addTo('#drawing')
@@ -36,7 +45,6 @@
                 .fill({color: this.color, opacity: standaloneFillOpacity})
                 .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
             this.transformGroup.add(this.standaloneGeometry);
-            this.centerLineEndPoint = [this.length, 0]
             this.centerLine = svg
                 .line(0, this.radius/2, this.length, this.radius/2)
                 .stroke({color: this.color, opacity: standaloneStrokeOpacity, width: standaloneStrokeWidth});
@@ -61,12 +69,15 @@
                 translate: [0, -this.radius/2],
                 rotate: this.angle / Math.PI * 180,
             });
-            const ca = Math.cos(this.angle)
-            const sa = Math.sin(this.angle)
-            this.centerLineEndPoint[0] = ca*this.length;
-            this.centerLineEndPoint[1] = sa*this.length;
+            this.outgoingDirection = new Vec2(this.length, 0).rotated(origin, this.angle).normalized();
+            this.leftBorderOrigin = new Vec2(0, -this.radius/2).rotated(origin, this.angle);
+            this.rightBorderOrigin = new Vec2(0, this.radius/2).rotated(origin, this.angle);
         }
     }
+
+    //function intersectRays(positionA, directionA, positionB, directionB) {
+        //
+    //}
 
     // Scenario
     var scenarios = [];
@@ -93,9 +104,14 @@
 
     function algorithmIntersectOutlinesInEachSlice(joinContainer) {
         for (const e of edges) {
+            const leftBorderExtensionTarget = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
+            const rightBorderExtensionTarget = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
             joinContainer.line(
-                0, 0, -e.centerLineEndPoint[0], -e.centerLineEndPoint[1]
-            ).stroke({color: 'black', width: standaloneStrokeWidth});
+                e.leftBorderOrigin.x, e.leftBorderOrigin.y, leftBorderExtensionTarget.x, leftBorderExtensionTarget.y
+            ).stroke({color: 'black', width: standaloneStrokeWidth}).attr('stroke-dasharray', "8 1");
+            joinContainer.line(
+                e.rightBorderOrigin.x, e.rightBorderOrigin.y, rightBorderExtensionTarget.x, rightBorderExtensionTarget.y
+            ).stroke({color: 'black', width: standaloneStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
         }
     }
     var algorithms = [algorithmIntersectOutlinesInEachSlice];
