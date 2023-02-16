@@ -105,7 +105,7 @@
     init();
 
     function sortByAngleAndAssignIndex(edges) {
-        angleSortedEdges = [...edges].sort(function(a, b){return a.angle - b.angle});
+        angleSortedEdges = [...edges].sort(function(a, b){return b.angle - a.angle});
         for (let i = 0; i < edges.length; i++) {
             angleSortedEdges[i].index = i;
         }
@@ -133,12 +133,14 @@
                 e1.rightOutlineIntersections.push([i, t1]);
             }
         }
+        for (let e of edges) {
+            e.leftOutlineIntersections.sort(function(a, b){return a[1] - b[1]});
+            e.rightOutlineIntersections.sort(function(a, b){return a[1] - b[1]});
+        }
     }
 
     function algorithmShowAllOutlineIntersections(joinContainer, angleSortedEdges) {
         for (const e of angleSortedEdges) {
-            e.leftOutlineIntersections.sort(function(a, b){return a[1] - b[1]});
-            e.rightOutlineIntersections.sort(function(a, b){return a[1] - b[1]});
             const a = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(e.leftOutlineIntersections[0][1]));
             const b = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(Math.max(0, e.leftOutlineIntersections[e.leftOutlineIntersections.length-1][1])));
             const c = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(e.rightOutlineIntersections[0][1]));
