@@ -4,12 +4,13 @@
   <title>No join</title>
   <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
+  <style>.slider{width:500px;}</style>
 </head>
 <body>
-<input id="standaloneGeometryFillOpacity" type="range" value=0.5 min=0 max=1 step="0.01"/>standaloneGeometryFillOpacity<br/>
-<input id="standaloneGeometryStrokeOpacity" type="range" value=1.0 min=0 max=1 step="0.01"/>standaloneGeometryStrokeOpacity<br/>
-<input id="cutMaxCoefficient" type="range" value=1.0 min=0 max=5 step="0.01"/>cutMaxCoefficient<br/>
-<input id="edge0Angle" type="range" value=0 min=0 max=10 step="0.01"/>edge0Angle<br/>
+<input class="slider" id="standaloneGeometryFillOpacity" type="range" value=0 min=0 max=1 step="0.01"/>standaloneGeometryFillOpacity<br/>
+<input class="slider" id="standaloneGeometryStrokeOpacity" type="range" value=0 min=0 max=1 step="0.01"/>standaloneGeometryStrokeOpacity<br/>
+<input class="slider" id="cutMaxCoefficient" type="range" value=0 min=0 max=5 step="0.01"/>cutMaxCoefficient<br/>
+<input class="slider" id="edge0Angle" type="range" value=0 min=0 max=10 step="0.001"/>edge0Angle<br/>
 <div id="drawing"></div>
 </body>
 </html>
@@ -27,8 +28,8 @@
     var height = 600;
     var width = 600;
     var edgeLength = 250;
-    var standaloneGeometryFillOpacity = 0.5;
-    var standaloneGeometryStrokeOpacity = 1;
+    var standaloneGeometryFillOpacity = 0.4;
+    var standaloneGeometryStrokeOpacity = 0.8;
     var standaloneGeometryStrokeWidth = 2;
     var origin = new Vec2(0, 0)
 
@@ -38,24 +39,32 @@
         }
     }
 
-    document.querySelector("#standaloneGeometryFillOpacity").addEventListener("input", (event) => {
+    let element = document.querySelector("#standaloneGeometryFillOpacity");
+    element.addEventListener("input", (event) => {
         standaloneGeometryFillOpacity = event.target.value;
         updateEdges();
     });
-    document.querySelector("#standaloneGeometryStrokeOpacity").addEventListener("input", (event) => {
+    element.value = standaloneGeometryFillOpacity;
+
+    element = document.querySelector("#standaloneGeometryStrokeOpacity");
+    element.addEventListener("input", (event) => {
         standaloneGeometryStrokeOpacity = event.target.value;
         updateEdges();
     });
+    element.value = standaloneGeometryStrokeOpacity;
+
     document.querySelector("#edge0Angle").addEventListener("input", (event) => {
         edges[0].setAngle(event.target.value);
     });
 
     // algorithm parameters
     var cutMaxCoefficient = 1.0;
-    document.querySelector("#cutMaxCoefficient").addEventListener("input", (event) => {
+    element = document.querySelector("#cutMaxCoefficient");
+    element.addEventListener("input", (event) => {
         cutMaxCoefficient = event.target.value;
         updateEdges();
     });
+    element.value = cutMaxCoefficient;
 
     // Init SVG
     var svg = SVG().addTo('#drawing')
