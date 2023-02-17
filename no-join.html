@@ -179,7 +179,7 @@
             'edges': [
                 { 'radius': 15, 'angle': 0, 'color': 'blue' },
                 { 'radius': 35, 'angle': 0, 'color': 'red' },
-                //{ 'radius': 25, 'angle': 1, 'color': 'green' },
+                { 'radius': 25, 'angle': 1, 'color': 'green' },
             ]
         }
     );
@@ -457,7 +457,7 @@
             const pWide = (e0.radius < e1.radius) ? e1.outlineOrigins[se1.side] : e0.outlineOrigins[se0.side];
             const dWide = Vec2.SUBTRACT(pWide, joinVertex);
 
-            let tp0 = se0.tCutMax;
+            let tp0 = Math.min(-se0.t, se0.tCutMax);
             let tp1 = Math.min(se1.t, se1.tCutMax);
 
             {
@@ -468,8 +468,13 @@
                     e.outgoingDirection,
                     joinVertex,
                     dWide)[0];
-                if (isFinite(t) && t > 0) {
-                    tp1 = Math.min(tp1, t);
+                if (isFinite(t)) {
+                    if (e0.radius < e1.radius) {
+                        tp0 = Math.min(tp0, t);
+                    }
+                    else {
+                        tp1 = Math.min(tp1, t);
+                    }
                 }
             }
 
