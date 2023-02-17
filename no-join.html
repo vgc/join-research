@@ -329,11 +329,11 @@
 
         // common computations
         angleSortedEdges = sortByAngleAndAssignIndex(edges);
-        computeOutlineIntersections(angleSortedEdges)
+        computeOutlineIntersections(angleSortedEdges);
 
         // TODO: compute joins, etc.
         resultSvgGroup.clear();
-        algorithms[1](resultSvgGroup, angleSortedEdges)
+        algorithms[1](resultSvgGroup, angleSortedEdges);
 
         // Return whether to stop the animation
         return false;
