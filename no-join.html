@@ -278,32 +278,89 @@
             if (j >= angleSortedEdges.length) {
                 j = 0;
             }
-            let e0 = angleSortedEdges[i];
-            let e1 = angleSortedEdges[j];
-            let intersection = e0.outlineIntersections[Side.Right].find(function(a){ return a[0] == j})
+            let sliceEdges = [{e: angleSortedEdges[i], side: Side.Right}, {e: angleSortedEdges[j], side: Side.Left}];
+            let intersection = sliceEdges[0].e.outlineIntersections[Side.Right].find(function(a){ return a[0] == j; })
             if (intersection) {
-                let t0 = intersection[1];
-                let t1 = intersection[2];
-                const a = Vec2.ADD(e0.outlineOrigins[Side.Right], e0.outgoingDirection.scaled(t0));
-                svgGroup.circle(6).fill({color: 'black'}).center(a.x, a.y);
+                sliceEdges[0].t = intersection[1];
+                sliceEdges[1].t = intersection[2];
 
-                const isExt0 = t0 <= 0;
-                const isExt1 = t1 <= 0;
-                const cutMax0 = e0.cutMaxCoefficient * e0.radius;
-                const cutMax1 = e1.cutMaxCoefficient * e1.radius;
-
-                if (isExt0 && t1 > cutMax1 && e0.radius >= e1.radius) {
-                    //
-                }
-                else if (isExt1 && t0 > cutMax0 && e1.radius >= e0.radius) {
-                    //
-                }
-                else {
-
+                {
+                    const e = sliceEdges[0].e;
+                    const a = Vec2.ADD(e.outlineOrigins[Side.Right], e.outgoingDirection.scaled(sliceEdges[0].t));
+                    svgGroup.circle(6).fill({color: 'black'}).center(a.x, a.y);
                 }
 
+                for (let i = 0; i < 2; ++i) {
+                    let se = sliceEdges[i];
+                    se.tCutMax = se.e.tCutMax[se.side];
+                    se.isExtension = se.t <= 0;
+                    se.isCut = se.t > 0;
+                    se.isOvercut = se.t > se.tCutMax;
+                }
+
+                let done = false;
+
+                // Case: (extension, cut)
+                //
+                // legend
+                // ------------------
+                // ◆: common vertex
+                // ┈: center line
+                // ━: outline
+                // │: raw edge end
+                // x: intersection
+                // o: max cut point
+                //
+                // sub-cases
+                // ------------------
+                // 	━━━┑╌╌╌x           (1)
+                //     ┝━━━x━━o━━━━━━
+                //  A┈┈◆┈┈┈┈┈┈┈┈┈┈┈┈B
+                //
+                // 	━━━┑╌╌╌╌╌╌╌╌╌x     (2)
+                //     ┝━━━━━━o━━x━━━
+                //  A┈┈◆┈┈┈┈┈┈┈┈┈┈┈┈B
+                //
+                // 	━━━━━o━━x━━━━┑     (3)
+                //          x╌╌╌╌┝━━━
+                //  A┈┈┈┈┈┈┈┈┈┈┈┈◆┈┈B
+                //
+                // 	━━x━━o━━━━━━━┑     (4)
+                //    x╌╌╌╌╌╌╌╌╌╌┝━━━
+                //  A┈┈┈┈┈┈┈┈┈┈┈┈◆┈┈B
+                //
+                for (let i = 0; !done && i < 2; ++i) {
+                    let se0 = sliceEdges[i];
+                    let se1 = sliceEdges[1 - i];
+                    if (se0.isExtension && se1.isCut) {
+                        // value that is 0 when the extension is at 0, and 1 at infinity
+                        let extensionRatio = 1 - 1 / (-se0.t + 1);
+                        // value that is 0 when the cut is at max allowed t, and 1 at infinity
+                        let overcutRatio = se1.isOvercut ? (1 - se1.tCutMax / se1.t) : 0;
+
+                        const e0 = se0.e;
+                        const e1 = se1.e;
+                        let p0 = e0.outlinePoint(se0.side, se0.tCutMax);
+                        let p1 = e1.outlinePoint(se1.side, Math.min(se1.t, se1.tCutMax));
+
+                        let pX = p0.lerp(p1, extensionRatio);
+                        console.log(extensionRatio);
+
+                        {
+                            let a = Vec2.ADD(origin, e0.outgoingDirection.scaled(e0.length));
+                            let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
+                            svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), origin.asArray()])
+                                .fill({color: e0.color, opacity: 0.5})
+                                .stroke({color: e0.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                        }
+
+
+
+                        done = true;
+                    }
+                }
             }
-            else if (Vec2.DOT(e0.outgoingDirection, e1.outgoingDirection) < 0) {
+            else if (Vec2.DOT(sliceEdges[0].e.outgoingDirection, sliceEdges[1].e.outgoingDirection) < 0) {
                 // colinear join
             }
             else {
