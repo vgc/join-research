@@ -105,6 +105,10 @@
                 .line(0, this.radius/2, this.length, this.radius/2)
                 .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.centerLine.attr('stroke-dasharray', "4");
+            this.tCutMax = [
+                cutMaxCoefficient * this.radius,
+                cutMaxCoefficient * this.radius
+            ];
             this.cutMaxPoints = [
                 this.transformGroup
                     .circle(5)
@@ -128,6 +132,10 @@
             this.applyTransform_();
         }
 
+        outlinePoint(side, t) {
+            return Vec2.ADD(this.outlineOrigins[side], this.outgoingDirection.scaled(t));
+        }
+
         applyTransform_() {
             this.transformGroup.transform({
                 origin: [0, this.radius/2],
@@ -145,6 +153,10 @@
             this.standaloneGeometry.attr('fill-opacity', standaloneGeometryFillOpacity);
             this.standaloneGeometry.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
             this.centerLine.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
+            this.tCutMax = [
+                cutMaxCoefficient * this.radius,
+                cutMaxCoefficient * this.radius
+            ];
             this.cutMaxPoints[Side.Left]
                 .center(cutMaxCoefficient * this.radius, 0)
                 .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
