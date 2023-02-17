@@ -9,7 +9,7 @@
 <body>
 <input class="slider" id="standaloneGeometryFillOpacity" type="range" value=0 min=0 max=1 step="0.01"/>standaloneGeometryFillOpacity<br/>
 <input class="slider" id="standaloneGeometryStrokeOpacity" type="range" value=0 min=0 max=1 step="0.01"/>standaloneGeometryStrokeOpacity<br/>
-<input class="slider" id="cutMaxCoefficient" type="range" value=0 min=0 max=5 step="0.01"/>cutMaxCoefficient<br/>
+<input class="slider" id="cutMaxCoefficient" type="range" value=0 min=0 max=8 step="0.01"/>cutMaxCoefficient<br/>
 <input class="slider" id="edge0Angle" type="range" value=0 min=0 max=10 step="0.001"/>edge0Angle<br/>
 <div id="drawing"></div>
 </body>
@@ -31,7 +31,7 @@
     var standaloneGeometryFillOpacity = 0.4;
     var standaloneGeometryStrokeOpacity = 0.8;
     var standaloneGeometryStrokeWidth = 2;
-    var origin = new Vec2(0, 0)
+    var joinVertex = new Vec2(0, 0)
 
     function updateEdges() {
         for (e of edges) {
@@ -58,7 +58,7 @@
     });
 
     // algorithm parameters
-    var cutMaxCoefficient = 1.0;
+    var cutMaxCoefficient = 2.0;
     element = document.querySelector("#cutMaxCoefficient");
     element.addEventListener("input", (event) => {
         cutMaxCoefficient = event.target.value;
@@ -98,11 +98,11 @@
             this.color = edgeParams.color;
             this.transformGroup = svg.group();
             this.standaloneGeometry = this.transformGroup
-                .rect(this.length, this.radius)
+                .rect(this.length, this.radius * 2)
                 .fill({color: this.color, opacity: standaloneGeometryFillOpacity})
                 .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.centerLine = this.transformGroup
-                .line(0, this.radius/2, this.length, this.radius/2)
+                .line(0, this.radius, this.length, this.radius)
                 .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.centerLine.attr('stroke-dasharray', "4");
             this.tCutMax = [
@@ -116,7 +116,7 @@
                     .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity}),
                 this.transformGroup
                     .circle(5)
-                    .center(cutMaxCoefficient * this.radius, this.radius)
+                    .center(cutMaxCoefficient * this.radius, this.radius * 2)
                     .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
             ];
             this.applyTransform_();
@@ -138,14 +138,14 @@
 
         applyTransform_() {
             this.transformGroup.transform({
-                origin: [0, this.radius/2],
-                translate: [0, -this.radius/2],
+                origin: [0, this.radius],
+                translate: [0, -this.radius],
                 rotate: this.angle / Math.PI * 180,
             });
-            this.outgoingDirection = new Vec2(this.length, 0).rotated(origin, this.angle).normalized();
+            this.outgoingDirection = new Vec2(this.length, 0).rotated(joinVertex, this.angle).normalized();
             this.outlineOrigins = [
-                new Vec2(0, -this.radius/2).rotated(origin, this.angle),
-                new Vec2(0, this.radius/2).rotated(origin, this.angle)
+                new Vec2(0, -this.radius).rotated(joinVertex, this.angle),
+                new Vec2(0, this.radius).rotated(joinVertex, this.angle)
             ];
         }
 
@@ -160,11 +160,11 @@
             this.cutMaxPoints[Side.Left]
                 .center(cutMaxCoefficient * this.radius, 0)
                 .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
-                .attr('fill-opacity', standaloneGeometryFillOpacity);
+                .attr('fill-opacity', standaloneGeometryStrokeOpacity);
             this.cutMaxPoints[Side.Right]
-                .center(cutMaxCoefficient * this.radius, this.radius)
+                .center(cutMaxCoefficient * this.radius, this.radius * 2)
                 .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
-                .attr('fill-opacity', standaloneGeometryFillOpacity);
+                .attr('fill-opacity', standaloneGeometryStrokeOpacity);
         }
     }
 
@@ -177,9 +177,9 @@
     scenarios.push(
         {
             'edges': [
-                { 'radius': 30, 'angle': 0, 'color': 'blue' },
-                { 'radius': 70, 'angle': 0, 'color': 'red' },
-                { 'radius': 50, 'angle': 1, 'color': 'green' },
+                { 'radius': 15, 'angle': 0, 'color': 'blue' },
+                { 'radius': 35, 'angle': 0, 'color': 'red' },
+                //{ 'radius': 25, 'angle': 1, 'color': 'green' },
             ]
         }
     );
@@ -215,16 +215,16 @@
                 }
                 let e0 = edges[i];
                 let e1 = edges[j];
-                const w = Vec2.SUBTRACT(e1.outlineOrigins[Side.Right], e0.outlineOrigins[Side.Left]);
+                const w = Vec2.SUBTRACT(e1.outlineOrigins[Side.Left], e0.outlineOrigins[Side.Right]);
                 const ddet = Vec2.DET(e0.outgoingDirection, e1.outgoingDirection);
                 const ddetInv = 1 / ddet;
                 const t0 = Vec2.DET(w, e1.outgoingDirection) * ddetInv;
                 const t1 = Vec2.DET(w, e0.outgoingDirection) * ddetInv;
                 if (isFinite(t0)) {
-                    e0.outlineIntersections[Side.Left].push([j, t0, t1]);
+                    e0.outlineIntersections[Side.Right].push([j, t0, t1]);
                 }
                 if (isFinite(t1)) {
-                    e1.outlineIntersections[Side.Right].push([i, t1, t0]);
+                    e1.outlineIntersections[Side.Left].push([i, t1, t0]);
                 }
             }
         }
@@ -347,7 +347,7 @@
                         console.log(extensionRatio);
 
                         {
-                            let a = Vec2.ADD(origin, e0.outgoingDirection.scaled(e0.length));
+                            let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                             let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
                             svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), origin.asArray()])
                                 .fill({color: e0.color, opacity: 0.5})
