@@ -204,6 +204,15 @@
         return angleSortedEdges;
     }
 
+    function intersectRays(o0, d0, o1, d1) {
+        const w = Vec2.SUBTRACT(o1, o0);
+        const ddet = Vec2.DET(d0, d1);
+        const ddetInv = 1 / ddet;
+        const t0 = Vec2.DET(w, d1) * ddetInv;
+        const t1 = Vec2.DET(w, d0) * ddetInv;
+        return [t0, t1]
+    }
+
     function computeOutlineIntersections(edges) {
         for (let e of edges) {
             e.outlineIntersections = [[], []];
@@ -215,11 +224,11 @@
                 }
                 let e0 = edges[i];
                 let e1 = edges[j];
-                const w = Vec2.SUBTRACT(e1.outlineOrigins[Side.Left], e0.outlineOrigins[Side.Right]);
-                const ddet = Vec2.DET(e0.outgoingDirection, e1.outgoingDirection);
-                const ddetInv = 1 / ddet;
-                const t0 = Vec2.DET(w, e1.outgoingDirection) * ddetInv;
-                const t1 = Vec2.DET(w, e0.outgoingDirection) * ddetInv;
+                [t0, t1] = intersectRays(
+                    e0.outlineOrigins[Side.Right],
+                    e0.outgoingDirection,
+                    e1.outlineOrigins[Side.Left],
+                    e1.outgoingDirection);
                 if (isFinite(t0)) {
                     e0.outlineIntersections[Side.Right].push([j, t0, t1]);
                 }
