@@ -71,6 +71,24 @@
         .viewbox(-width/2, -height/2, width, height)
         .size(width, height);
 
+
+    class Side {
+        // Create new instances of the same class as static attributes
+        static Left = new Side(0)
+        static Right = new Side(1)
+
+        constructor(index) {
+            this.index = index
+        }
+
+        opposite() {
+            return (this.index == 0 ? 1 : 0);
+        }
+    }
+    Side.prototype.valueOf = function(){ return this.index; }
+    Side.prototype.toString = function(){ return String(this.index); }
+    sides = [Side.Left, Side.Right];
+
     // Edge class
     class Edge {
         constructor(edgeParams) {
@@ -87,14 +105,16 @@
                 .line(0, this.radius/2, this.length, this.radius/2)
                 .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
             this.centerLine.attr('stroke-dasharray', "4");
-            this.leftCutMaxPoint = this.transformGroup
-                .circle(5)
-                .center(cutMaxCoefficient * this.radius, 0)
-                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
-            this.rightCutMaxPoint = this.transformGroup
-                .circle(5)
-                .center(cutMaxCoefficient * this.radius, this.radius)
-                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
+            this.cutMaxPoints = [
+                this.transformGroup
+                    .circle(5)
+                    .center(cutMaxCoefficient * this.radius, 0)
+                    .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity}),
+                this.transformGroup
+                    .circle(5)
+                    .center(cutMaxCoefficient * this.radius, this.radius)
+                    .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
+            ];
             this.applyTransform_();
         }
 
@@ -115,22 +135,24 @@
                 rotate: this.angle / Math.PI * 180,
             });
             this.outgoingDirection = new Vec2(this.length, 0).rotated(origin, this.angle).normalized();
-            this.leftBorderOrigin = new Vec2(0, -this.radius/2).rotated(origin, this.angle);
-            this.rightBorderOrigin = new Vec2(0, this.radius/2).rotated(origin, this.angle);
+            this.outlineOrigins = [
+                new Vec2(0, -this.radius/2).rotated(origin, this.angle),
+                new Vec2(0, this.radius/2).rotated(origin, this.angle)
+            ];
         }
 
         update_() {
             this.standaloneGeometry.attr('fill-opacity', standaloneGeometryFillOpacity);
             this.standaloneGeometry.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
             this.centerLine.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
-            this.leftCutMaxPoint
+            this.cutMaxPoints[Side.Left]
                 .center(cutMaxCoefficient * this.radius, 0)
-                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
-            this.rightCutMaxPoint
+                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
+                .attr('fill-opacity', standaloneGeometryFillOpacity);
+            this.cutMaxPoints[Side.Right]
                 .center(cutMaxCoefficient * this.radius, this.radius)
-                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity});
-            this.leftCutMaxPoint.attr('fill-opacity', standaloneGeometryFillOpacity);
-            this.rightCutMaxPoint.attr('fill-opacity', standaloneGeometryFillOpacity);
+                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
+                .attr('fill-opacity', standaloneGeometryFillOpacity);
         }
     }
 
@@ -172,8 +194,7 @@
 
     function computeOutlineIntersections(edges) {
         for (let e of edges) {
-            e.leftOutlineIntersections = [];
-            e.rightOutlineIntersections = [];
+            e.outlineIntersections = [[], []];
         }
         for (let i = 0; i < edges.length; i++) {
             for (let j = 0; j < edges.length; j++) {
@@ -182,58 +203,64 @@
                 }
                 let e0 = edges[i];
                 let e1 = edges[j];
-                const w = Vec2.SUBTRACT(e1.rightBorderOrigin, e0.leftBorderOrigin);
+                const w = Vec2.SUBTRACT(e1.outlineOrigins[Side.Right], e0.outlineOrigins[Side.Left]);
                 const ddet = Vec2.DET(e0.outgoingDirection, e1.outgoingDirection);
                 const ddetInv = 1 / ddet;
                 const t0 = Vec2.DET(w, e1.outgoingDirection) * ddetInv;
                 const t1 = Vec2.DET(w, e0.outgoingDirection) * ddetInv;
                 if (isFinite(t0)) {
-                    e0.leftOutlineIntersections.push([j, t0]);
+                    e0.outlineIntersections[Side.Left].push([j, t0, t1]);
                 }
                 if (isFinite(t1)) {
-                    e1.rightOutlineIntersections.push([i, t1]);
+                    e1.outlineIntersections[Side.Right].push([i, t1, t0]);
                 }
             }
         }
+        function compareT0(a, b){return a[1] - b[1]};
         for (let e of edges) {
-            e.leftOutlineIntersections.sort(function(a, b){return a[1] - b[1]});
-            e.rightOutlineIntersections.sort(function(a, b){return a[1] - b[1]});
+            e.outlineIntersections[Side.Left].sort(compareT0);
+            e.outlineIntersections[Side.Right].sort(compareT0);
         }
     }
 
-    function algorithmShowExtendedOutlines(joinContainer, angleSortedEdges) {
+    function algorithmShowExtendedOutlines(svgGroup, angleSortedEdges) {
         for (const e of angleSortedEdges) {
-            const leftBorderExtensionTarget = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
-            const rightBorderExtensionTarget = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(-0.5 * e.length));
-            joinContainer.line(
-                e.leftBorderOrigin.x, e.leftBorderOrigin.y, leftBorderExtensionTarget.x, leftBorderExtensionTarget.y
-            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
-            joinContainer.line(
-                e.rightBorderOrigin.x, e.rightBorderOrigin.y, rightBorderExtensionTarget.x, rightBorderExtensionTarget.y
-            ).stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
-        }
-    }
-
-    function algorithmShowAllOutlineIntersections(joinContainer, angleSortedEdges) {
-        for (const e of angleSortedEdges) {
-            const a = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(e.leftOutlineIntersections[0][1]));
-            const b = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(Math.max(0, e.leftOutlineIntersections[e.leftOutlineIntersections.length-1][1])));
-            const c = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(e.rightOutlineIntersections[0][1]));
-            const d = Vec2.ADD(e.rightBorderOrigin, e.outgoingDirection.scaled(Math.max(0, e.rightOutlineIntersections[e.rightOutlineIntersections.length-1][1])));
-            joinContainer.line(
-                a.x, a.y, b.x, b.y
-            ).stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
-            joinContainer.line(
-                c.x, c.y, d.x, d.y
-            ).stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1 4 1");
-            for (intersect of e.leftOutlineIntersections) {
-                const a = Vec2.ADD(e.leftBorderOrigin, e.outgoingDirection.scaled(intersect[1]));
-                joinContainer.circle(5).fill({color: e.color, opacity: 0.5}).center(a.x, a.y);
+            for (const s of sides) {
+                const outlineExtensionEndpoint = Vec2.ADD(e.outlineOrigins[s], e.outgoingDirection.scaled(-0.5 * e.length));
+                svgGroup.line([e.outlineOrigins[s].asArray(), outlineExtensionEndpoint.asArray()])
+                    .stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
             }
         }
     }
 
-    function algorithmPerSlice0(joinContainer, angleSortedEdges) {
+    function algorithmShowAllOutlineIntersections(svgGroup, angleSortedEdges) {
+        for (const e of angleSortedEdges) {
+            for (const s of sides) {
+                const origin = e.outlineOrigins[s]
+                const tMin = e.outlineIntersections[s][0][1]
+                const tMax = e.outlineIntersections[s].slice(-1)[1]
+                if (tMin < 0) {
+                    const endpoint = Vec2.ADD(origin, e.outgoingDirection.scaled(tMin));
+                    svgGroup.line([origin.asArray(), endpoint.asArray()])
+                        .stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth})
+                        .attr('stroke-dasharray', "8 1");
+                }
+                if (tMax > 0) {
+                    const endpoint = Vec2.ADD(origin, e.outgoingDirection.scaled(tMax));
+                    svgGroup.line([origin.asArray(), endpoint.asArray()])
+                        .stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth})
+                        .attr('stroke-dasharray', "8 1");
+                }
+            }
+            for (intersect of e.outlineIntersections[Side.Left]) {
+                const a = Vec2.ADD(e.outlineOrigins[Side.Left], e.outgoingDirection.scaled(intersect[1]));
+                svgGroup.circle(5).fill({color: e.color, opacity: 0.5}).center(a.x, a.y);
+            }
+        }
+    }
+
+    function algorithmPerSlice0(svgGroup, angleSortedEdges) {
+
         for (let i = 0; i < angleSortedEdges.length; ++i) {
             let j = i + 1;
             if (j >= angleSortedEdges.length) {
@@ -241,13 +268,12 @@
             }
             let e0 = angleSortedEdges[i];
             let e1 = angleSortedEdges[j];
-            let intersection0 = e0.rightOutlineIntersections.find(function(a){ return a[0] == j})
-            let intersection1 = e1.leftOutlineIntersections.find(function(a){ return a[0] == i})
-            if (intersection0 && intersection1) {
-                let t0 = intersection0[1];
-                let t1 = intersection1[1];
-                const a = Vec2.ADD(e0.rightBorderOrigin, e0.outgoingDirection.scaled(t0));
-                joinContainer.circle(6).fill({color: 'black'}).center(a.x, a.y);
+            let intersection = e0.outlineIntersections[Side.Right].find(function(a){ return a[0] == j})
+            if (intersection) {
+                let t0 = intersection[1];
+                let t1 = intersection[2];
+                const a = Vec2.ADD(e0.outlineOrigins[Side.Right], e0.outgoingDirection.scaled(t0));
+                svgGroup.circle(6).fill({color: 'black'}).center(a.x, a.y);
 
                 const isExt0 = t0 <= 0;
                 const isExt1 = t1 <= 0;
@@ -257,7 +283,7 @@
                 if (isExt0 && t1 > cutMax1 && e0.radius >= e1.radius) {
                     //
                 }
-                else if (isExt0 && t1 > cutMax1 && e0.radius >= e1.radius) {
+                else if (isExt1 && t0 > cutMax0 && e1.radius >= e0.radius) {
                     //
                 }
                 else {
@@ -280,7 +306,7 @@
         algorithmPerSlice0
     ];
 
-    var joinContainer = svg.group();
+    var resultSvgGroup = svg.group();
     // Perform your animation here.
     // t is in milliseconds.
     //
@@ -294,8 +320,8 @@
         computeOutlineIntersections(angleSortedEdges)
 
         // TODO: compute joins, etc.
-        joinContainer.clear();
-        algorithms[1](joinContainer, angleSortedEdges)
+        resultSvgGroup.clear();
+        algorithms[1](resultSvgGroup, angleSortedEdges)
 
         // Return whether to stop the animation
         return false;
