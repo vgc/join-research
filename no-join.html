@@ -4,10 +4,24 @@
 <head>
     <meta charset="UTF-8">
     <title>No join</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
     <style>
+        body,
+        div,
+        p,
+        h1,
+        h2,
+        h3 {
+            font-family: 'Open Sans', sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
         .parameter-input {
             width: 500px;
             display: inline-block;
@@ -15,22 +29,82 @@
 
         .parameter-label {
             display: inline-block;
-            margin-left: 20px;
         }
 
         .slider {
-            width: 500px;
+            width: 100%;
+        }
+
+        .join-applet {
+            display: flex;
+            flex-direction: column;
+            row-gap: 8px;
+            padding: 8px;
+        }
+
+        .parameters {
+            display: flex;
+            flex-direction: column;
+            row-gap: 8px;
+        }
+
+        .parameter {
+            display: flex;
+            margin: 2px 0;
+        }
+
+        .parameter p {
+            min-width: 16em;
+        }
+
+        .parameter-group {
+            max-width: 50%;
+            background-color: #f4f4f4;
+            border-radius: 4px;
+            padding: 8px;
+            font-size: 11pt;
+        }
+
+        .parameter-group .title {
+            padding-bottom: 4px;
+            font-weight: 600;
+        }
+
+        .drawing svg {
+            border: solid 1px #888888;
         }
     </style>
 </head>
 
 <body>
-    <div id="scenario-parameters">
-        <select id="scenario">
-        </select>
+    <div id="main" class="join-applet">
+        <div class="parameters">
+            <div class="parameter-group global-parameters">
+            </div>
+            <div class="parameter-group scenario-parameters">
+                <div class="parameter static-parameter">
+                    <p class="title">Scenario:</p>
+                    <select class="scenario">
+                    </select>
+                </div>
+            </div>
+            <div class="parameter-group patch-limit-parameters">
+                <div class="parameter static-parameter">
+                    <p class="title">Patch limit algorithm:</p>
+                    <select class="algorithm">
+                    </select>
+                </div>
+            </div>
+            <div class="parameter-group join-parameters">
+                <div class="parameter static-parameter">
+                    <p class="title">Join algorithm:</p>
+                    <select class="algorithm">
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="drawing"></div>
     </div>
-    <div id="drawing"></div>
-    <div id="global-parameters"></div>
 </body>
 
 
@@ -44,14 +118,15 @@
     Vec2.DET = function (a, b) { return a.x * b.y - a.y * b.x; }
 
     // Global parameters.
+    let main = $('#main');
     height = 600;
     width = 600;
     edgeLength = 250;
     var globalParameters = [
-        { name: 'inputGeometryFillOpacity', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
-        { name: 'inputGeometryStrokeOpacity', value: 0.4, type: 'range', min: 0, max: 1, step: 0.01 },
-        { name: 'inputGeometryStrokeWidth', value: 2.6, type: 'range', min: 0, max: 10, step: 0.01 },
-        { name: 'cutMaxCoefficient', value: 0, type: 'range', min: 0, max: 10, step: 0.01 },
+        { name: 'inputGeometryFillOpacity', prettyname: 'Fill opacity of input geometry', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeOpacity', prettyname: 'Stroke opacity of input geometry', value: 0.4, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeWidth', prettyname: 'Stroke width of input geometry', value: 2.6, type: 'range', min: 0, max: 10, step: 0.01 },
+        { name: 'cutMaxCoefficient', prettyname: 'Patch limit coefficient', value: 0, type: 'range', min: 0, max: 10, step: 0.01 },
     ];
 
     var globals = Object.fromEntries(globalParameters.map((x) => [x.name, x.value]));
@@ -59,9 +134,9 @@
     let joinVertex = new Vec2(0, 0);
 
     for (p of globalParameters) {
-        let div = $(`<div />`).appendTo('#global-parameters');
+        let div = $(`<div class="parameter" />`).appendTo(main.find('.global-parameters'));
+        let label = $(`<p>${p.prettyname}:</p>`).appendTo(div);
         let input = $(`<input class="parameter-input" />`).appendTo(div);
-        let label = $(`<p class="parameter-label">${p.name}</p>`).appendTo(div);
         // Firefox bug workaround (setting value before step corrupts the value).
         if (p.step) {
             input.attr('step', p.step);
@@ -81,20 +156,8 @@
         );
     }
 
-    // Scenario
-    var scenarios = [];
-    scenarios.push(
-        {
-            'edges': [
-                { 'radius': 15, 'angle': 0, 'color': 'blue' },
-                { 'radius': 35, 'angle': 0, 'color': 'red' },
-                { 'radius': 25, 'angle': 1, 'color': 'green' },
-            ]
-        }
-    );
-
     // Init SVG
-    var svg = SVG().addTo('#drawing')
+    var svg = SVG().addTo(main.find('.drawing')[0])
         .viewbox(-width / 2, -height / 2, width, height)
         .size(width, height);
 
@@ -194,6 +257,10 @@
                 .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
                 .attr('fill-opacity', globals.inputGeometryStrokeOpacity);
         }
+
+        clear() {
+            this.originalShapeSvgGroup.clear();
+        }
     }
 
     function updateAll() {
@@ -201,18 +268,6 @@
             e.update_();
         }
     }
-
-    var edges = [];
-    function init() {
-        // Draw edges with initial geometry
-        for (const edgeParams of scenarios[0].edges) {
-            edges.push(new Edge(edgeParams));
-        }
-
-        // Draw center
-        svg.circle(8).center(0, 0);
-    }
-    init();
 
     function sortByAngleAndAssignIndex(edges) {
         angleSortedEdges = [...edges].sort(function (a, b) { return a.angle - b.angle });
@@ -606,6 +661,51 @@
         }
     }
 
+    // Scenarios
+    var scenarios = [
+        {
+            'name': "2 edges of different widths",
+            'edges': [
+                { 'radius': 15, 'angle': 0, 'color': 'blue' },
+                { 'radius': 35, 'angle': 0, 'color': 'red' },
+            ]
+        },
+        {
+            'name': "3 edges of different widths",
+            'edges': [
+                { 'radius': 15, 'angle': 0, 'color': 'blue' },
+                { 'radius': 35, 'angle': 0, 'color': 'red' },
+                { 'radius': 25, 'angle': 1, 'color': 'green' },
+            ]
+        },
+    ];
+    var scenarioIndex = 0;
+    {
+        let scenarioSelector = main.find('.scenario-parameters select');
+        for (let i = 0; i < scenarios.length; ++i) {
+            scenarioSelector.append(`<option value="${i}">${scenarios[i].name}</option>`);
+        }
+        scenarioSelector[0].selectedIndex = scenarioIndex;
+        scenarioSelector.on(
+            "input",
+            (event) => {
+                scenarioIndex = event.target.value;
+                initFromScenario(scenarios[scenarioIndex]);
+                updateAll();
+            }
+        );
+    }
+    function initFromScenario(scenario) {
+        for (e of edges) {
+            e.clear();
+        }
+        edges = [];
+        for (const edgeParams of scenario.edges) {
+            edges.push(new Edge(edgeParams));
+        }
+    }
+
+    // Algorithms
     var algorithms = [
         algorithmShowExtendedOutlines,
         algorithmShowAllOutlineIntersections,
@@ -613,21 +713,27 @@
     ];
     var algorithmIndex = algorithms.length - 1;
     {
-        let scenarioSelector = $('#scenario');
+        let algorithmSelector = main.find('.join-parameters select');
         for (let i = 0; i < algorithms.length; ++i) {
-            scenarioSelector.append(`<option value="${i}">${algorithms[i].name}</option>`);
+            algorithmSelector.append(`<option value="${i}">${algorithms[i].name}</option>`);
         }
-        scenarioSelector[0].selectedIndex = algorithmIndex;
-        scenarioSelector.on(
+        algorithmSelector[0].selectedIndex = algorithmIndex;
+        algorithmSelector.on(
             "input",
             (event) => {
-                console.log(event.target);
                 algorithmIndex = event.target.value;
                 updateAll();
             }
         );
     }
 
+    var edges = [];
+    function init() {
+        initFromScenario(scenarios[scenarioIndex]);
+        // Draw center
+        svg.circle(8).center(0, 0);
+    }
+    init();
 
     var resultSvgGroup = svg.group();
     // Perform your animation here.
@@ -636,7 +742,7 @@
     function animate(t) {
 
         // Update scenario
-        //edges[0].setAngle(t/3000);
+        edges[0].setAngle(t/3000);
 
         // common computations
         angleSortedEdges = sortByAngleAndAssignIndex(edges);
