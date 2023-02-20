@@ -1,76 +1,98 @@
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>No join</title>
-  <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
-  <style>.slider{width:500px;}</style>
+    <meta charset="UTF-8">
+    <title>No join</title>
+    <script src="https://cdn.jsdelivr.net/npm/@svgdotjs/svg.js@3.0/dist/svg.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@catsums/vector2@1.2.5/lib/umd/index.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.3.min.js"></script>
+    <style>
+        .parameter-input {
+            width: 500px;
+            display: inline-block;
+        }
+
+        .parameter-label {
+            display: inline-block;
+            margin-left: 20px;
+        }
+
+        .slider {
+            width: 500px;
+        }
+    </style>
 </head>
+
 <body>
-<input class="slider" id="standaloneGeometryFillOpacity" type="range" value=0 min=0 max=1 step="0.01"/>standaloneGeometryFillOpacity<br/>
-<input class="slider" id="standaloneGeometryStrokeOpacity" type="range" value=0 min=0 max=1 step="0.01"/>standaloneGeometryStrokeOpacity<br/>
-<input class="slider" id="cutMaxCoefficient" type="range" value=0 min=0 max=8 step="0.01"/>cutMaxCoefficient<br/>
-<input class="slider" id="edge0Angle" type="range" value=0 min=0 max=10 step="0.001"/>edge0Angle<br/>
-<div id="drawing"></div>
+    <div id="drawing"></div>
+    <div id="global-parameters"></div>
 </body>
-</html>
+
+
 <script>
     // Aliases for catsums's vector2 types
     const Vec2 = VECTOR2.Vector2;
-	const Line2 = VECTOR2.Vector2Line;
-	const Rect2 = VECTOR2.Rect2;
-	const Transform2 = VECTOR2.Transform2;
+    const Line2 = VECTOR2.Vector2Line;
+    const Rect2 = VECTOR2.Rect2;
+    const Transform2 = VECTOR2.Transform2;
     Vec2.prototype.isNormalized = Vec2.prototype.isNormalised
-    Vec2.DET = function(a, b) { return a.x*b.y - a.y*b.x; }
+    Vec2.DET = function (a, b) { return a.x * b.y - a.y * b.x; }
 
     // Global parameters.
-    // We may want to turn these into HTML sliders.
-    var height = 600;
-    var width = 600;
-    var edgeLength = 250;
-    var standaloneGeometryFillOpacity = 0.4;
-    var standaloneGeometryStrokeOpacity = 0.8;
-    var standaloneGeometryStrokeWidth = 2;
-    var joinVertex = new Vec2(0, 0)
+    height = 600;
+    width = 600;
+    edgeLength = 250;
+    var globalParameters = [
+        { name: 'inputGeometryFillOpacity', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeOpacity', value: 0.4, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeWidth', value: 2.6, type: 'range', min: 0, max: 10, step: 0.01 },
+        { name: 'cutMaxCoefficient', value: 0, type: 'range', min: 0, max: 10, step: 0.01 },
+    ];
 
-    function updateEdges() {
-        for (e of edges) {
-            e.update_();
+    var globals = Object.fromEntries(globalParameters.map((x) => [x.name, x.value]));
+
+    let joinVertex = new Vec2(0, 0);
+
+    for (p of globalParameters) {
+        let div = $(`<div />`).appendTo('#global-parameters');
+        let input = $(`<input class="parameter-input" />`).appendTo(div);
+        let label = $(`<p class="parameter-label">${p.name}</p>`).appendTo(div);
+        // Firefox bug workaround (setting value before step corrupts the value).
+        if (p.step) {
+            input.attr('step', p.step);
         }
+        input.attr(p);
+        if (p.type === 'range') {
+            input.addClass('slider');
+        }
+        input.on(
+            "input",
+            ((name) => {
+                return (event) => {
+                    globals[name] = event.target.value;
+                    updateAll();
+                };
+            })(p.name)
+        );
     }
 
-    let element = document.querySelector("#standaloneGeometryFillOpacity");
-    element.addEventListener("input", (event) => {
-        standaloneGeometryFillOpacity = event.target.value;
-        updateEdges();
-    });
-    element.value = standaloneGeometryFillOpacity;
-
-    element = document.querySelector("#standaloneGeometryStrokeOpacity");
-    element.addEventListener("input", (event) => {
-        standaloneGeometryStrokeOpacity = event.target.value;
-        updateEdges();
-    });
-    element.value = standaloneGeometryStrokeOpacity;
-
-    document.querySelector("#edge0Angle").addEventListener("input", (event) => {
-        edges[0].setAngle(event.target.value);
-    });
-
-    // algorithm parameters
-    var cutMaxCoefficient = 2.0;
-    element = document.querySelector("#cutMaxCoefficient");
-    element.addEventListener("input", (event) => {
-        cutMaxCoefficient = event.target.value;
-        updateEdges();
-    });
-    element.value = cutMaxCoefficient;
+    // Scenario
+    var scenarios = [];
+    scenarios.push(
+        {
+            'edges': [
+                { 'radius': 15, 'angle': 0, 'color': 'blue' },
+                { 'radius': 35, 'angle': 0, 'color': 'red' },
+                { 'radius': 25, 'angle': 1, 'color': 'green' },
+            ]
+        }
+    );
 
     // Init SVG
     var svg = SVG().addTo('#drawing')
-        .viewbox(-width/2, -height/2, width, height)
+        .viewbox(-width / 2, -height / 2, width, height)
         .size(width, height);
-
 
     class Side {
         // Create new instances of the same class as static attributes
@@ -85,8 +107,8 @@
             return (this.index == 0 ? 1 : 0);
         }
     }
-    Side.prototype.valueOf = function(){ return this.index; }
-    Side.prototype.toString = function(){ return String(this.index); }
+    Side.prototype.valueOf = function () { return this.index; }
+    Side.prototype.toString = function () { return String(this.index); }
     sides = [Side.Left, Side.Right];
 
     // Edge class
@@ -96,28 +118,28 @@
             this.radius = edgeParams.radius;
             this.angle = edgeParams.angle;
             this.color = edgeParams.color;
-            this.transformGroup = svg.group();
-            this.standaloneGeometry = this.transformGroup
-                .rect(this.length, this.radius * 2)
-                .fill({color: this.color, opacity: standaloneGeometryFillOpacity})
-                .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
-            this.centerLine = this.transformGroup
-                .line(0, this.radius, this.length, this.radius)
-                .stroke({color: this.color, opacity: standaloneGeometryStrokeOpacity, width: standaloneGeometryStrokeWidth});
-            this.centerLine.attr('stroke-dasharray', "4");
             this.tCutMax = [
-                cutMaxCoefficient * this.radius,
-                cutMaxCoefficient * this.radius
+                globals.cutMaxCoefficient * this.radius,
+                globals.cutMaxCoefficient * this.radius
             ];
-            this.cutMaxPoints = [
-                this.transformGroup
+            this.originalShapeSvgGroup = svg.group();
+            this.inputGeometrySvg = this.originalShapeSvgGroup
+                .rect(this.length, this.radius * 2)
+                .fill({ color: this.color, opacity: globals.inputGeometryFillOpacity })
+                .stroke({ color: this.color, opacity: globals.inputGeometryStrokeOpacity, width: globals.inputGeometryStrokeWidth });
+            this.centerLineSvg = this.originalShapeSvgGroup
+                .line(0, this.radius, this.length, this.radius)
+                .stroke({ color: this.color, opacity: globals.inputGeometryStrokeOpacity, width: globals.inputGeometryStrokeWidth });
+            this.centerLineSvg.attr('stroke-dasharray', "4");
+            this.cutMaxPointsSvg = [
+                this.originalShapeSvgGroup
                     .circle(5)
-                    .center(cutMaxCoefficient * this.radius, 0)
-                    .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity}),
-                this.transformGroup
+                    .center(globals.cutMaxCoefficient * this.radius, 0)
+                    .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity }),
+                this.originalShapeSvgGroup
                     .circle(5)
-                    .center(cutMaxCoefficient * this.radius, this.radius * 2)
-                    .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
+                    .center(globals.cutMaxCoefficient * this.radius, this.radius * 2)
+                    .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
             ];
             this.applyTransform_();
         }
@@ -137,7 +159,7 @@
         }
 
         applyTransform_() {
-            this.transformGroup.transform({
+            this.originalShapeSvgGroup.transform({
                 origin: [0, this.radius],
                 translate: [0, -this.radius],
                 rotate: this.angle / Math.PI * 180,
@@ -150,39 +172,31 @@
         }
 
         update_() {
-            this.standaloneGeometry.attr('fill-opacity', standaloneGeometryFillOpacity);
-            this.standaloneGeometry.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
-            this.centerLine.attr('stroke-opacity', standaloneGeometryStrokeOpacity);
+            this.inputGeometrySvg.attr('fill-opacity', globals.inputGeometryFillOpacity);
+            this.inputGeometrySvg.attr('stroke-opacity', globals.inputGeometryStrokeOpacity);
+            this.inputGeometrySvg.attr('stroke-width', globals.inputGeometryStrokeWidth);
+            this.centerLineSvg.attr('stroke-opacity', globals.inputGeometryStrokeOpacity);
+            this.inputGeometrySvg.attr('stroke-width', globals.inputGeometryStrokeWidth);
             this.tCutMax = [
-                cutMaxCoefficient * this.radius,
-                cutMaxCoefficient * this.radius
+                globals.cutMaxCoefficient * this.radius,
+                globals.cutMaxCoefficient * this.radius
             ];
-            this.cutMaxPoints[Side.Left]
-                .center(cutMaxCoefficient * this.radius, 0)
-                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
-                .attr('fill-opacity', standaloneGeometryStrokeOpacity);
-            this.cutMaxPoints[Side.Right]
-                .center(cutMaxCoefficient * this.radius, this.radius * 2)
-                .fill({color: this.color, opacity: standaloneGeometryStrokeOpacity})
-                .attr('fill-opacity', standaloneGeometryStrokeOpacity);
+            this.cutMaxPointsSvg[Side.Left]
+                .center(globals.cutMaxCoefficient * this.radius, 0)
+                .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
+                .attr('fill-opacity', globals.inputGeometryStrokeOpacity);
+            this.cutMaxPointsSvg[Side.Right]
+                .center(globals.cutMaxCoefficient * this.radius, this.radius * 2)
+                .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
+                .attr('fill-opacity', globals.inputGeometryStrokeOpacity);
         }
     }
 
-    //function intersectRays(positionA, directionA, positionB, directionB) {
-        //
-    //}
-
-    // Scenario
-    var scenarios = [];
-    scenarios.push(
-        {
-            'edges': [
-                { 'radius': 15, 'angle': 0, 'color': 'blue' },
-                { 'radius': 35, 'angle': 0, 'color': 'red' },
-                { 'radius': 25, 'angle': 1, 'color': 'green' },
-            ]
+    function updateAll() {
+        for (e of edges) {
+            e.update_();
         }
-    );
+    }
 
     var edges = [];
     function init() {
@@ -197,7 +211,7 @@
     init();
 
     function sortByAngleAndAssignIndex(edges) {
-        angleSortedEdges = [...edges].sort(function(a, b){return a.angle - b.angle});
+        angleSortedEdges = [...edges].sort(function (a, b) { return a.angle - b.angle });
         for (let i = 0; i < edges.length; i++) {
             angleSortedEdges[i].index = i;
         }
@@ -237,7 +251,7 @@
                 }
             }
         }
-        function compareT0(a, b){return a[1] - b[1]};
+        function compareT0(a, b) { return a[1] - b[1] };
         for (let e of edges) {
             e.outlineIntersections[Side.Left].sort(compareT0);
             e.outlineIntersections[Side.Right].sort(compareT0);
@@ -249,7 +263,7 @@
             for (const s of sides) {
                 const outlineExtensionEndpoint = Vec2.ADD(e.outlineOrigins[s], e.outgoingDirection.scaled(-0.5 * e.length));
                 svgGroup.line([e.outlineOrigins[s].asArray(), outlineExtensionEndpoint.asArray()])
-                    .stroke({color: 'black', width: standaloneGeometryStrokeWidth}).attr('stroke-dasharray', "8 1");
+                    .stroke({ color: 'black', width: globals.inputGeometryStrokeWidth }).attr('stroke-dasharray', "8 1");
             }
         }
     }
@@ -263,19 +277,19 @@
                 if (tMin < 0) {
                     const endpoint = Vec2.ADD(origin, e.outgoingDirection.scaled(tMin));
                     svgGroup.line([origin.asArray(), endpoint.asArray()])
-                        .stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth})
+                        .stroke({ color: e.color, opacity: globals.inputGeometryFillOpacity, width: globals.inputGeometryStrokeWidth })
                         .attr('stroke-dasharray', "8 1");
                 }
                 if (tMax > 0) {
                     const endpoint = Vec2.ADD(origin, e.outgoingDirection.scaled(tMax));
                     svgGroup.line([origin.asArray(), endpoint.asArray()])
-                        .stroke({color: e.color, opacity: standaloneGeometryFillOpacity, width: standaloneGeometryStrokeWidth})
+                        .stroke({ color: e.color, opacity: globals.inputGeometryFillOpacity, width: globals.inputGeometryStrokeWidth })
                         .attr('stroke-dasharray', "8 1");
                 }
             }
             for (intersect of e.outlineIntersections[Side.Left]) {
                 const a = Vec2.ADD(e.outlineOrigins[Side.Left], e.outgoingDirection.scaled(intersect[1]));
-                svgGroup.circle(5).fill({color: e.color, opacity: 0.5}).center(a.x, a.y);
+                svgGroup.circle(5).fill({ color: e.color, opacity: 0.5 }).center(a.x, a.y);
             }
         }
     }
@@ -332,16 +346,16 @@
                 let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                 let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e0.color, opacity: 0.5})
-                    .stroke({color: e0.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e0.color, opacity: 0.5 })
+                    .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
 
             {
                 let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                 let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p1.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e1.color, opacity: 0.5})
-                    .stroke({color: e1.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e1.color, opacity: 0.5 })
+                    .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
 
             return true;
@@ -370,16 +384,16 @@
                 let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                 let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e0.color, opacity: 0.5})
-                    .stroke({color: e0.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e0.color, opacity: 0.5 })
+                    .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
 
             {
                 let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                 let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p1.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e1.color, opacity: 0.5})
-                    .stroke({color: e1.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e1.color, opacity: 0.5 })
+                    .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
 
 
@@ -433,15 +447,15 @@
                 let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                 let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e0.color, opacity: 0.5})
-                    .stroke({color: e0.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e0.color, opacity: 0.5 })
+                    .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
             {
                 let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                 let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p1.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e1.color, opacity: 0.5})
-                    .stroke({color: e1.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e1.color, opacity: 0.5 })
+                    .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
 
             return true;
@@ -510,15 +524,15 @@
                 let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                 let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e0.color, opacity: 0.5})
-                    .stroke({color: e0.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e0.color, opacity: 0.5 })
+                    .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
             {
                 let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                 let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
                 svgGroup.polyline([a.asArray(), b.asArray(), p1.asArray(), pX.asArray(), joinVertex.asArray()])
-                    .fill({color: e1.color, opacity: 0.5})
-                    .stroke({color: e1.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                    .fill({ color: e1.color, opacity: 0.5 })
+                    .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
             }
 
             return true;
@@ -532,8 +546,8 @@
             if (j >= angleSortedEdges.length) {
                 j = 0;
             }
-            let sliceEdges = [{e: angleSortedEdges[i], side: Side.Right}, {e: angleSortedEdges[j], side: Side.Left}];
-            let intersection = sliceEdges[0].e.outlineIntersections[Side.Right].find(function(a){ return a[0] == j; })
+            let sliceEdges = [{ e: angleSortedEdges[i], side: Side.Right }, { e: angleSortedEdges[j], side: Side.Left }];
+            let intersection = sliceEdges[0].e.outlineIntersections[Side.Right].find(function (a) { return a[0] == j; })
             if (intersection) {
                 sliceEdges[0].t = intersection[1];
                 sliceEdges[1].t = intersection[2];
@@ -541,7 +555,7 @@
                 {
                     const e = sliceEdges[0].e;
                     const a = Vec2.ADD(e.outlineOrigins[Side.Right], e.outgoingDirection.scaled(sliceEdges[0].t));
-                    svgGroup.circle(6).fill({color: 'black'}).center(a.x, a.y);
+                    svgGroup.circle(6).fill({ color: 'black' }).center(a.x, a.y);
                 }
 
                 for (let i = 0; i < 2; ++i) {
@@ -557,7 +571,7 @@
                 for (let i = 0; !done && i < 2; ++i) {
                     let se0 = sliceEdges[i];
                     let se1 = sliceEdges[1 - i];
-                    done = methodPerSliceIntersectCut3(svgGroup, se0, se1);
+                    done = methodPerSliceIntersectCut2(svgGroup, se0, se1);
                 }
 
                 if (!done) {
@@ -571,15 +585,15 @@
                             let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                             let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
                             svgGroup.polyline([a.asArray(), b.asArray(), pX.asArray(), joinVertex.asArray()])
-                                .fill({color: e0.color, opacity: 0.5})
-                                .stroke({color: e0.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                                .fill({ color: e0.color, opacity: 0.5 })
+                                .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
                         }
                         {
                             let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                             let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
                             svgGroup.polyline([a.asArray(), b.asArray(), pX.asArray(), joinVertex.asArray()])
-                                .fill({color: e1.color, opacity: 0.5})
-                                .stroke({color: e1.color, opacity: 1.0, width: standaloneGeometryStrokeWidth});
+                                .fill({ color: e1.color, opacity: 0.5 })
+                                .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
                         }
                     }
                     done = true;
@@ -632,3 +646,5 @@
     window.requestAnimationFrame(animationLoop);
 
 </script>
+
+</html>
