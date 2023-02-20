@@ -25,6 +25,10 @@
 </head>
 
 <body>
+    <div id="scenario-parameters">
+        <select id="scenario">
+        </select>
+    </div>
     <div id="drawing"></div>
     <div id="global-parameters"></div>
 </body>
@@ -607,6 +611,23 @@
         algorithmShowAllOutlineIntersections,
         algorithmPerSlice,
     ];
+    var algorithmIndex = algorithms.length - 1;
+    {
+        let scenarioSelector = $('#scenario');
+        for (let i = 0; i < algorithms.length; ++i) {
+            scenarioSelector.append(`<option value="${i}">${algorithms[i].name}</option>`);
+        }
+        scenarioSelector[0].selectedIndex = algorithmIndex;
+        scenarioSelector.on(
+            "input",
+            (event) => {
+                console.log(event.target);
+                algorithmIndex = event.target.value;
+                updateAll();
+            }
+        );
+    }
+
 
     var resultSvgGroup = svg.group();
     // Perform your animation here.
@@ -623,7 +644,7 @@
 
         // TODO: compute joins, etc.
         resultSvgGroup.clear();
-        algorithms[2](resultSvgGroup, angleSortedEdges);
+        algorithms[algorithmIndex](resultSvgGroup, angleSortedEdges);
 
         // Return whether to stop the animation
         return false;
