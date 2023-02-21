@@ -23,7 +23,6 @@
         }
 
         .parameter-input {
-            width: 500px;
             display: inline-block;
         }
 
@@ -31,7 +30,7 @@
             display: inline-block;
         }
 
-        .slider {
+        .parameter-input[type=range] {
             width: 100%;
         }
 
@@ -78,31 +77,7 @@
 
 <body>
     <div id="main" class="join-applet">
-        <div class="parameters">
-            <div class="parameter-group global-parameters">
-            </div>
-            <div class="parameter-group scenario-parameters">
-                <div class="parameter static-parameter">
-                    <p class="title">Scenario:</p>
-                    <select class="scenario">
-                    </select>
-                </div>
-            </div>
-            <div class="parameter-group patch-limit-parameters">
-                <div class="parameter static-parameter">
-                    <p class="title">Patch limit algorithm:</p>
-                    <select class="algorithm">
-                    </select>
-                </div>
-            </div>
-            <div class="parameter-group join-parameters">
-                <div class="parameter static-parameter">
-                    <p class="title">Join algorithm:</p>
-                    <select class="algorithm">
-                    </select>
-                </div>
-            </div>
-        </div>
+        <div class="parameters"></div>
         <div class="drawing"></div>
     </div>
 </body>
@@ -118,46 +93,239 @@
     Vec2.DET = function (a, b) { return a.x * b.y - a.y * b.x; }
 
     // Global parameters.
-    let main = $('#main');
+    let main = document.querySelector('#main');
+    let parametersDiv = main.querySelector('.parameters');
+
     height = 600;
     width = 600;
     edgeLength = 250;
-    var globalParameters = [
-        { name: 'inputGeometryFillOpacity', prettyname: 'Fill opacity of input geometry', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
-        { name: 'inputGeometryStrokeOpacity', prettyname: 'Stroke opacity of input geometry', value: 0.4, type: 'range', min: 0, max: 1, step: 0.01 },
-        { name: 'inputGeometryStrokeWidth', prettyname: 'Stroke width of input geometry', value: 2.6, type: 'range', min: 0, max: 10, step: 0.01 },
-        { name: 'cutMaxCoefficient', prettyname: 'Patch limit coefficient', value: 0, type: 'range', min: 0, max: 10, step: 0.01 },
-    ];
-
-    var globals = Object.fromEntries(globalParameters.map((x) => [x.name, x.value]));
-
     let joinVertex = new Vec2(0, 0);
 
-    for (p of globalParameters) {
-        let div = $(`<div class="parameter" />`).appendTo(main.find('.global-parameters'));
-        let label = $(`<p>${p.prettyname}:</p>`).appendTo(div);
-        let input = $(`<input class="parameter-input" />`).appendTo(div);
-        // Firefox bug workaround (setting value before step corrupts the value).
-        if (p.step) {
-            input.attr('step', p.step);
+    var globalparameterDescriptions = [
+        { name: 'inputGeometryFillOpacity', prettyName: 'Fill opacity of input geometry', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeOpacity', prettyName: 'Stroke opacity of input geometry', value: 0.4, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeWidth', prettyName: 'Stroke width of input geometry', value: 2.6, type: 'range', min: 0, max: 10, step: 0.01 },
+    ];
+    var globals = {};
+    parametersDiv.appendChild(createParameterGroup(globalparameterDescriptions, globals));
+
+    let methodSelectToParamGroupDiv = new Map();
+    function createParameterGroup(parameterDescriptions, argumentsDict) {
+        let customAttributes = ['isTitle'];
+        let groupDiv = document.createElement("div");
+        groupDiv.classList.add("parameter-group");
+        if (parameterDescriptions.length === 0) {
+            groupDiv.hidden = true;
         }
-        input.attr(p);
-        if (p.type === 'range') {
-            input.addClass('slider');
+        for (parameterDescription of parameterDescriptions) {
+            let paramDiv = document.createElement("div");
+            paramDiv.classList.add("parameter");
+            groupDiv.appendChild(paramDiv);
+            let value = argumentsDict[parameterDescription.name];
+            // label
+            let label = document.createElement("p");
+            label.textContent = parameterDescription.prettyName;
+            label.classList.add("parameter-label");
+            if (parameterDescription.isTitle) {
+                label.classList.add("title");
+            }
+            paramDiv.appendChild(label);
+
+            if (parameterDescription.methods) {
+                //
+                // perSlice.intersectCutMethodIndex
+                // perSlice.intersectCutMethod[0].param
+                // or
+                // perSlice.intersectCutMethod.param
+                // perSlice.intersectCutMethod.index
+                // intersectCutMethod0.param
+                //
+                // in the algorithm itself we'll call sub-methods
+                // params.submethod.function(params.subalgo.parameterValues)
+                //
+                let selectedMethodIndex = 0;
+                if (value === undefined) {
+                    selectedMethodIndex = parameterDescription.initialMethodIndex || 0;
+                    // make a class ?
+                    value = {};
+                    argumentsDict[parameterDescription.name] = value;
+                    value.selectedMethodIndex = selectedMethodIndex;
+                    value.methodsData = []
+                    for (methodDescription of parameterDescription.methods) {
+                        if (methodDescription instanceof Function) {
+                            // automatic description
+                            methodDescription = {
+                                name: methodDescription.name,
+                                function: methodDescription,
+                                parameters: [],
+                            };
+                        } else {
+                            if (methodDescription.parameters === undefined) {
+                                methodDescription.parameters = [];
+                            }
+                        }
+                        methodArgumentsDict = globals[methodDescription.name];
+                        if (methodArgumentsDict === undefined) {
+                            methodArgumentsDict = {};
+                            globals[methodDescription.name] = methodArgumentsDict;
+                        }
+                        value.methodsData.push({
+                            description: methodDescription,
+                            arguments: methodArgumentsDict
+                        });
+                    }
+                } else {
+                    selectedMethodIndex = value.selectedMethodIndex;
+                }
+                selectedMethodData = value.methodsData[selectedMethodIndex];
+
+                // select
+                let select = document.createElement("select");
+                select.classList.add("parameter-input");
+                select.classList.add("method");
+                for (let i = 0; i < parameterDescription.methods.length; ++i) {
+                    let option = document.createElement("option");
+                    method = parameterDescription.methods[i];
+                    option.textContent = method.prettyName || method.name;
+                    option.value = i;
+                    select.append(option);
+                }
+                select.selectedIndex = selectedMethodIndex;
+                paramDiv.append(select);
+
+                // parameters
+                childParameterGroup = createParameterGroup(
+                    selectedMethodData.description.parameters,
+                    selectedMethodData.arguments);
+                groupDiv.append(childParameterGroup);
+                methodSelectToParamGroupDiv.set(select, childParameterGroup);
+
+                // change event handler
+                select.addEventListener(
+                    'change',
+                    ((argumentsDict, name) => {
+                        return (event) => {
+                            select = event.target;
+                            value = argumentsDict[name];
+                            value.selectedMethodIndex = select.value;
+                            selectedMethodData = value.methodsData[value.selectedMethodIndex];
+                            childParameterGroup = methodSelectToParamGroupDiv.get(select);
+                            if (childParameterGroup) {
+                                childParameterGroup.remove();
+                            }
+                            childParameterGroup = createParameterGroup(
+                                selectedMethodData.description.parameters,
+                                selectedMethodData.arguments);
+                            methodSelectToParamGroupDiv.set(select, childParameterGroup);
+                            select.parentElement.after(childParameterGroup);
+                            childParameterGroup
+                            onParameterValueChanged();
+                        };
+                    })(argumentsDict, parameterDescription.name)
+                );
+            }
+            else if (parameterDescription.type == 'select') {
+                let select = document.createElement("select");
+                select.classList.add("parameter-input");
+                for (let i = 0; i < parameterDescription.options.length; ++i) {
+                    let option = document.createElement("option");
+                    option.textContent = parameterDescription.options[i].prettyName;
+                    option.value = i;
+                    select.append(option);
+                }
+
+                value = argumentsDict[parameterDescription.name];
+                if (value === undefined) {
+                    value = parameterDescription.initialMethodIndex || 0;
+                    argumentsDict[parameterDescription.name] = value;
+                }
+                select.selectedIndex = value;
+
+                paramDiv.append(select);
+                select.addEventListener(
+                    'change',
+                    ((argumentsDict, name, callback) => {
+                        return (event) => {
+                            value = event.target.value;
+                            if (callback) {
+                                callback(value);
+                            }
+                            argumentsDict[name] = value;
+                            onParameterValueChanged();
+                        };
+                    })(argumentsDict, parameterDescription.name, parameterDescription.callback)
+                );
+            }
+            else if (parameterDescription.type == 'checkbox') {
+                let input = document.createElement("input");
+                input.classList.add("parameter-input");
+                for (const [key, value] of Object.entries(parameterDescription)) {
+                    if (key in customAttributes) {
+                        continue;
+                    }
+                    input.setAttribute(key, value);
+                }
+                paramDiv.append(input);
+
+                value = argumentsDict[parameterDescription.name];
+                if (value === undefined) {
+                    value = input.checked;
+                    argumentsDict[parameterDescription.name] = value;
+                } else {
+                    input.checked = value;
+                }
+
+                input.addEventListener(
+                    'change',
+                    ((argumentsDict, name) => {
+                        return (event) => {
+                            value = event.target.checked;
+                            argumentsDict[name] = value;
+                            onParameterValueChanged();
+                        };
+                    })(argumentsDict, parameterDescription.name)
+                );
+            }
+            else if (parameterDescription.type !== undefined) {
+                let input = document.createElement("input");
+                input.classList.add("parameter-input");
+                // Firefox bug workaround (setting value before step corrupts the value).
+                if (parameterDescription.step) {
+                    input.setAttribute('step', parameterDescription.step);
+                }
+                for (const [key, value] of Object.entries(parameterDescription)) {
+                    if (key in customAttributes) {
+                        continue;
+                    }
+                    input.setAttribute(key, value);
+                }
+                paramDiv.append(input);
+
+                value = argumentsDict[parameterDescription.name];
+                if (value === undefined) {
+                    value = input.value;
+                    argumentsDict[parameterDescription.name] = value;
+                } else {
+                    input.value = value;
+                }
+
+                input.addEventListener(
+                    parameterDescription.type === 'range' ? 'input' : 'change',
+                    ((argumentsDict, name) => {
+                        return (event) => {
+                            value = event.target.value;
+                            argumentsDict[name] = value;
+                            onParameterValueChanged();
+                        };
+                    })(argumentsDict, parameterDescription.name)
+                );
+            }
         }
-        input.on(
-            "input",
-            ((name) => {
-                return (event) => {
-                    globals[name] = event.target.value;
-                    updateAll();
-                };
-            })(p.name)
-        );
+        return groupDiv;
     }
 
     // Init SVG
-    var svg = SVG().addTo(main.find('.drawing')[0])
+    var svg = SVG().addTo(main.querySelector(".drawing"))
         .viewbox(-width / 2, -height / 2, width, height)
         .size(width, height);
 
@@ -180,15 +348,11 @@
 
     // Edge class
     class Edge {
-        constructor(edgeParams) {
+        constructor(edgeDescription) {
             this.length = edgeLength;
-            this.radius = edgeParams.radius;
-            this.angle = edgeParams.angle;
-            this.color = edgeParams.color;
-            this.tCutMax = [
-                globals.cutMaxCoefficient * this.radius,
-                globals.cutMaxCoefficient * this.radius
-            ];
+            this.radius = edgeDescription.radius;
+            this.angle = edgeDescription.angle;
+            this.color = edgeDescription.color;
             this.originalShapeSvgGroup = svg.group();
             this.inputGeometrySvg = this.originalShapeSvgGroup
                 .rect(this.length, this.radius * 2)
@@ -198,16 +362,6 @@
                 .line(0, this.radius, this.length, this.radius)
                 .stroke({ color: this.color, opacity: globals.inputGeometryStrokeOpacity, width: globals.inputGeometryStrokeWidth });
             this.centerLineSvg.attr('stroke-dasharray', "4");
-            this.cutMaxPointsSvg = [
-                this.originalShapeSvgGroup
-                    .circle(5)
-                    .center(globals.cutMaxCoefficient * this.radius, 0)
-                    .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity }),
-                this.originalShapeSvgGroup
-                    .circle(5)
-                    .center(globals.cutMaxCoefficient * this.radius, this.radius * 2)
-                    .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
-            ];
             this.applyTransform_();
         }
 
@@ -244,18 +398,6 @@
             this.inputGeometrySvg.attr('stroke-width', globals.inputGeometryStrokeWidth);
             this.centerLineSvg.attr('stroke-opacity', globals.inputGeometryStrokeOpacity);
             this.inputGeometrySvg.attr('stroke-width', globals.inputGeometryStrokeWidth);
-            this.tCutMax = [
-                globals.cutMaxCoefficient * this.radius,
-                globals.cutMaxCoefficient * this.radius
-            ];
-            this.cutMaxPointsSvg[Side.Left]
-                .center(globals.cutMaxCoefficient * this.radius, 0)
-                .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
-                .attr('fill-opacity', globals.inputGeometryStrokeOpacity);
-            this.cutMaxPointsSvg[Side.Right]
-                .center(globals.cutMaxCoefficient * this.radius, this.radius * 2)
-                .fill({ color: this.color, opacity: globals.inputGeometryStrokeOpacity })
-                .attr('fill-opacity', globals.inputGeometryStrokeOpacity);
         }
 
         clear() {
@@ -263,10 +405,12 @@
         }
     }
 
-    function updateAll() {
-        for (e of edges) {
-            e.update_();
-        }
+    function onParameterValueChanged() {
+        update();
+    }
+
+    function updateEdges() {
+
     }
 
     function sortByAngleAndAssignIndex(edges) {
@@ -317,7 +461,38 @@
         }
     }
 
-    function algorithmShowExtendedOutlines(svgGroup, angleSortedEdges) {
+    function drawPatchLimits(svgGroup, e) {
+        for (let i = 0; i < 2; ++i) {
+            let point = e.outlinePoint(i, e.tCutMax[i]);
+            svgGroup
+                .circle(globals.inputGeometryStrokeWidth * 2)
+                .center(point.x, point.y)
+                .fill({ color: e.color, opacity: globals.inputGeometryStrokeOpacity });
+        }
+    }
+
+    function computePatchLimitsIndependent(svgGroup, angleSortedEdges, arguments) {
+        for (let e of edges) {
+            tCutMax = arguments.coefficient * e.radius;
+            e.tCutMax = [
+                tCutMax,
+                tCutMax
+            ];
+            if (arguments.show) {
+                drawPatchLimits(svgGroup, e);
+            }
+        }
+    }
+    var patchLimitIndependentMethod = {
+        name: "Independent",
+        function: computePatchLimitsIndependent,
+        parameters: [
+            { name: 'coefficient', prettyName: 'Coefficient', value: 2, type: 'range', min: 0, max: 10, step: 0.01 },
+            { name: 'show', prettyName: 'Show', checked: true, type: 'checkbox' },
+        ]
+    };
+
+    function drawExtendedOutlines(svgGroup, angleSortedEdges, arguments) {
         for (const e of angleSortedEdges) {
             for (const s of sides) {
                 const outlineExtensionEndpoint = Vec2.ADD(e.outlineOrigins[s], e.outgoingDirection.scaled(-0.5 * e.length));
@@ -327,7 +502,7 @@
         }
     }
 
-    function algorithmShowAllOutlineIntersections(svgGroup, angleSortedEdges) {
+    function drawAllOutlineIntersections(svgGroup, angleSortedEdges, arguments) {
         for (const e of angleSortedEdges) {
             for (const s of sides) {
                 const origin = e.outlineOrigins[s]
@@ -599,7 +774,7 @@
         return false;
     }
 
-    function algorithmPerSlice(svgGroup, angleSortedEdges) {
+    function joinPerSlice(svgGroup, angleSortedEdges, arguments) {
         for (let i = 0; i < angleSortedEdges.length; ++i) {
             let j = i + 1;
             if (j >= angleSortedEdges.length) {
@@ -660,98 +835,119 @@
             }
         }
     }
+    var joinPerSliceMethod = {
+        name: "PerSlice",
+        prettyName: "Per Slice",
+        function: joinPerSlice,
+        parameters: [
+            {
+                name: 'joinMethod2', prettyName: 'Join method2', type: 'method', isTitle: 1, methods: [
+                    drawExtendedOutlines,
+                    drawAllOutlineIntersections,
+                ]
+            },
+            { name: 'dummy', prettyName: 'Dummy', value: 2, type: 'range', min: 0, max: 10, step: 0.01 },
+        ]
+    };
+
+    //argumentsDict['PerSlice'].currentalgo subalgo1.coefficient
 
     // Scenarios
     var scenarios = [
         {
-            'name': "2 edges of different widths",
-            'edges': [
+            prettyName: "2 edges of different widths",
+            edges: [
                 { 'radius': 15, 'angle': 0, 'color': 'blue' },
                 { 'radius': 35, 'angle': 0, 'color': 'red' },
             ]
         },
         {
-            'name': "3 edges of different widths",
-            'edges': [
+            prettyName: "3 edges of different widths",
+            edges: [
                 { 'radius': 15, 'angle': 0, 'color': 'blue' },
                 { 'radius': 35, 'angle': 0, 'color': 'red' },
                 { 'radius': 25, 'angle': 1, 'color': 'green' },
             ]
         },
     ];
-    var scenarioIndex = 0;
-    {
-        let scenarioSelector = main.find('.scenario-parameters select');
-        for (let i = 0; i < scenarios.length; ++i) {
-            scenarioSelector.append(`<option value="${i}">${scenarios[i].name}</option>`);
-        }
-        scenarioSelector[0].selectedIndex = scenarioIndex;
-        scenarioSelector.on(
-            "input",
-            (event) => {
-                scenarioIndex = event.target.value;
-                initFromScenario(scenarios[scenarioIndex]);
-                updateAll();
-            }
-        );
-    }
-    function initFromScenario(scenario) {
+    function setScenario(i) {
         for (e of edges) {
             e.clear();
         }
         edges = [];
-        for (const edgeParams of scenario.edges) {
-            edges.push(new Edge(edgeParams));
+        for (const edgeDescription of scenarios[i].edges) {
+            edges.push(new Edge(edgeDescription));
         }
     }
+    scenarioParameters = [
+        { prettyName: 'Scenijjin ario', isTitle: 1 },
+        { name: 'scenario', prettyName: 'Scenario', type: 'select', isTitle: 1, options: scenarios, callback: setScenario },
+    ]
+    parametersDiv.appendChild(createParameterGroup(scenarioParameters, globals));
 
-    // Algorithms
-    var algorithms = [
-        algorithmShowExtendedOutlines,
-        algorithmShowAllOutlineIntersections,
-        algorithmPerSlice,
-    ];
-    var algorithmIndex = algorithms.length - 1;
-    {
-        let algorithmSelector = main.find('.join-parameters select');
-        for (let i = 0; i < algorithms.length; ++i) {
-            algorithmSelector.append(`<option value="${i}">${algorithms[i].name}</option>`);
-        }
-        algorithmSelector[0].selectedIndex = algorithmIndex;
-        algorithmSelector.on(
-            "input",
-            (event) => {
-                algorithmIndex = event.target.value;
-                updateAll();
-            }
-        );
-    }
+    // Patch Limit Methods
+    patchLimitParameters = [
+        {
+            name: 'patchLimitMethod', prettyName: 'Patch limit method', type: 'method', isTitle: 1, methods: [
+                patchLimitIndependentMethod,
+            ]
+        },
+    ]
+    parametersDiv.appendChild(createParameterGroup(patchLimitParameters, globals));
+
+    // Join Methods
+    joinParameters = [
+        {
+            name: 'joinMethod', prettyName: 'Join method', type: 'method', isTitle: 1, methods: [
+                drawExtendedOutlines,
+                drawAllOutlineIntersections,
+                joinPerSliceMethod,
+            ]
+        },
+        {
+            name: 'joinMethod2', prettyName: 'Join method2', type: 'method', isTitle: 1, methods: [
+                drawExtendedOutlines,
+                drawAllOutlineIntersections,
+                joinPerSliceMethod,
+            ]
+        },
+    ]
+    parametersDiv.appendChild(createParameterGroup(joinParameters, globals));
 
     var edges = [];
     function init() {
-        initFromScenario(scenarios[scenarioIndex]);
+        setScenario(0);
         // Draw center
         svg.circle(8).center(0, 0);
     }
     init();
+
+    function update() {
+        for (e of edges) {
+            e.update_();
+        }
+
+        // common computations
+        angleSortedEdges = sortByAngleAndAssignIndex(edges);
+        computeOutlineIntersections(angleSortedEdges);
+
+        resultSvgGroup.clear();
+
+        patchLimitMethodData = globals.patchLimitMethod.methodsData[globals.patchLimitMethod.selectedMethodIndex];
+        patchLimitMethodData.description.function(resultSvgGroup, angleSortedEdges, patchLimitMethodData.arguments);
+
+        joinMethodData = globals.joinMethod.methodsData[globals.joinMethod.selectedMethodIndex];
+        joinMethodData.description.function(resultSvgGroup, angleSortedEdges, joinMethodData.arguments);
+    }
 
     var resultSvgGroup = svg.group();
     // Perform your animation here.
     // t is in milliseconds.
     //
     function animate(t) {
-
         // Update scenario
-        edges[0].setAngle(t/3000);
-
-        // common computations
-        angleSortedEdges = sortByAngleAndAssignIndex(edges);
-        computeOutlineIntersections(angleSortedEdges);
-
-        // TODO: compute joins, etc.
-        resultSvgGroup.clear();
-        algorithms[algorithmIndex](resultSvgGroup, angleSortedEdges);
-
+        edges[0].setAngle(t / 3000);
+        update();
         // Return whether to stop the animation
         return false;
     }
