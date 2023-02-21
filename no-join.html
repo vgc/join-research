@@ -20,6 +20,7 @@
             font-family: 'Open Sans', sans-serif;
             margin: 0;
             padding: 0;
+            box-sizing: border-box;
         }
 
         .parameter-input {
@@ -36,12 +37,14 @@
 
         .join-applet {
             display: flex;
-            flex-direction: column;
-            row-gap: 8px;
+            flex-direction: row;
+            width: 100%;
+            column-gap: 8px;
             padding: 8px;
         }
 
         .parameters {
+            width: 100%;
             display: flex;
             flex-direction: column;
             row-gap: 8px;
@@ -57,7 +60,6 @@
         }
 
         .parameter-group {
-            max-width: 50%;
             background-color: #f4f4f4;
             border-radius: 4px;
             padding: 8px;
@@ -77,8 +79,8 @@
 
 <body>
     <div id="main" class="join-applet">
-        <div class="parameters"></div>
         <div class="drawing"></div>
+        <div class="parameters"></div>
     </div>
 </body>
 
@@ -117,7 +119,7 @@
         if (parameterDescriptions.length === 0) {
             groupDiv.hidden = true;
         }
-        for (parameterDescription of parameterDescriptions) {
+        for (const parameterDescription of parameterDescriptions) {
             let paramDiv = document.createElement("div");
             paramDiv.classList.add("parameter");
             groupDiv.appendChild(paramDiv);
@@ -133,12 +135,12 @@
 
             if (parameterDescription.methods) {
                 //
-                // perSlice.intersectCutMethodIndex
-                // perSlice.intersectCutMethod[0].param
+                // perSlice.extensionCutMethodIndex
+                // perSlice.extensionCutMethod[0].param
                 // or
-                // perSlice.intersectCutMethod.param
-                // perSlice.intersectCutMethod.index
-                // intersectCutMethod0.param
+                // perSlice.extensionCutMethod.param
+                // perSlice.extensionCutMethod.index
+                // extensionCutMethod0.param
                 //
                 // in the algorithm itself we'll call sub-methods
                 // params.submethod.function(params.subalgo.parameterValues)
@@ -151,7 +153,7 @@
                     argumentsDict[parameterDescription.name] = value;
                     value.selectedMethodIndex = selectedMethodIndex;
                     value.methodsData = []
-                    for (methodDescription of parameterDescription.methods) {
+                    for (let methodDescription of parameterDescription.methods) {
                         if (methodDescription instanceof Function) {
                             // automatic description
                             methodDescription = {
@@ -164,11 +166,13 @@
                                 methodDescription.parameters = [];
                             }
                         }
-                        methodArgumentsDict = globals[methodDescription.name];
-                        if (methodArgumentsDict === undefined) {
-                            methodArgumentsDict = {};
-                            globals[methodDescription.name] = methodArgumentsDict;
-                        }
+                        // shared variant:
+                        //methodArgumentsDict = globals[methodDescription.name];
+                        //if (methodArgumentsDict === undefined) {
+                        //    methodArgumentsDict = {};
+                        //    globals[methodDescription.name] = methodArgumentsDict;
+                        //}
+                        methodArgumentsDict = {};
                         value.methodsData.push({
                             description: methodDescription,
                             arguments: methodArgumentsDict
@@ -484,13 +488,46 @@
         }
     }
     var patchLimitIndependentMethod = {
-        name: "Independent",
+        name: "patchLimitIndependent",
         function: computePatchLimitsIndependent,
         parameters: [
-            { name: 'coefficient', prettyName: 'Coefficient', value: 2, type: 'range', min: 0, max: 10, step: 0.01 },
             { name: 'show', prettyName: 'Show', checked: true, type: 'checkbox' },
+            { name: 'coefficient', prettyName: 'Coefficient', value: 2.5, type: 'range', min: 0, max: 10, step: 0.01 },
         ]
     };
+
+    function computePatchLimitsUniform(svgGroup, angleSortedEdges, arguments) {
+        v = [Infinity, 0, 0]
+        for (let e of edges) {
+            v[0] = Math.min(e.radius, v[0]);
+            v[1] = Math.max(e.radius, v[1]);
+            v[2] += e.radius;
+        }
+        v[2] = v[2] / edges.length;
+        tCutMax = v[arguments.func] * arguments.coefficient;
+        for (let e of edges) {
+            e.tCutMax = [
+                tCutMax,
+                tCutMax
+            ];
+            if (arguments.show) {
+                drawPatchLimits(svgGroup, e);
+            }
+        }
+    }
+    var patchLimitUniformMethod = {
+        name: "patchLimitUniform",
+        function: computePatchLimitsUniform,
+        parameters: [
+            { name: 'show', prettyName: 'Show', checked: true, type: 'checkbox' },
+            { name: 'coefficient', prettyName: 'Coefficient', value: 2.5, type: 'range', min: 0, max: 10, step: 0.01 },
+            { name: 'func', prettyName: 'Function', type: 'select', options: [
+                { prettyName: "minimum", },
+                { prettyName: "maximum", },
+                { prettyName: "average", }] },
+        ]
+    };
+
 
     function drawExtendedOutlines(svgGroup, angleSortedEdges, arguments) {
         for (const e of angleSortedEdges) {
@@ -528,7 +565,7 @@
         }
     }
 
-    // Algorithm: PerSliceIntersectCut
+    // Algorithm: PerSliceExtensionCut
     // Applies to case: (extension, cut)
     //
     // Legend
@@ -559,7 +596,7 @@
     //  A┈┈┈┈┈┈┈┈┈┈┈┈◆┈┈B
     //
 
-    function methodPerSliceIntersectCut0(svgGroup, se0, se1) {
+    function tryExtensionCut0(svgGroup, se0, se1, arguments) {
         if (se0.isExtension && se1.isCut) {
             const e0 = se0.e;
             const e1 = se1.e;
@@ -596,14 +633,21 @@
         }
         return false;
     }
+    var tryExtensionCut0Method = {
+        name: "ExtensionCut0",
+        function: tryExtensionCut0
+    };
 
-    function methodPerSliceIntersectCut1(svgGroup, se0, se1) {
+    function tryExtensionCut1(svgGroup, se0, se1, arguments) {
         if (se0.isExtension && se1.isCut) {
             const e0 = se0.e;
             const e1 = se1.e;
-            let p0 = e0.outlinePoint(se0.side, se0.tCutMax);
-            let p1 = e1.outlinePoint(se1.side, Math.min(se1.t, se1.tCutMax));
-            let p2 = p0.lerp(p1, se0.tCutMax / (se0.tCutMax + se1.tCutMax));
+
+            let tCutMax0 = se0.tCutMax;
+            let tCutMax1 = se1.tCutMax;
+            let p0 = e0.outlinePoint(se0.side, tCutMax0);
+            let p1 = e1.outlinePoint(se1.side, Math.min(se1.t, tCutMax1));
+            let p2 = p0.lerp(p1, tCutMax0 / (tCutMax0 + tCutMax1));
 
             // Let pX a point on [p0, p1] and [joinVertex, pX] be the segment that splits
             // the join in two halves (to have different colors).
@@ -611,7 +655,8 @@
             // We want pX to be p1 when:
             // - cut t < maxCut
             // - extension t is 0 (seems covered by first condition)
-            let overcutRatio = se1.isOvercut ? (1 - se1.tCutMax / se1.t) : 0;
+            const isOvercut1 = se1.t > tCutMax1;
+            let overcutRatio = isOvercut1 ? (1 - tCutMax1 / se1.t) : 0;
             let pX = p1.lerp(p2, overcutRatio);
 
             {
@@ -635,8 +680,12 @@
         }
         return false;
     }
+    var tryExtensionCut1Method = {
+        name: "ExtensionCut1",
+        function: tryExtensionCut1
+    };
 
-    function methodPerSliceIntersectCut2(svgGroup, se0, se1) {
+    function tryExtensionCut2(svgGroup, se0, se1, arguments) {
         if (se0.isExtension && se1.isCut) {
             const e0 = se0.e;
             const e1 = se1.e;
@@ -696,8 +745,12 @@
         }
         return false;
     }
+    var tryExtensionCut2Method = {
+        name: "ExtensionCut2",
+        function: tryExtensionCut2
+    };
 
-    function methodPerSliceIntersectCut3(svgGroup, se0, se1) {
+    function tryExtensionCut3(svgGroup, se0, se1, arguments) {
         if (se0.isExtension && se1.isCut) {
             const e0 = se0.e;
             const e1 = se1.e;
@@ -706,6 +759,9 @@
             const dWide = Vec2.SUBTRACT(pWide, joinVertex);
 
             let tp0 = Math.min(-se0.t, se0.tCutMax);
+            if (!arguments.mirrorCut) {
+                tp0 = se0.tCutMax;
+            }
             let tp1 = Math.min(se1.t, se1.tCutMax);
 
             {
@@ -773,6 +829,13 @@
         }
         return false;
     }
+    var tryExtensionCut3Method = {
+        name: "ExtensionCut3",
+        function: tryExtensionCut3,
+        parameters: [
+            { name: 'mirrorCut', prettyName: 'Mirror cut on wide edge', type: 'checkbox', checked: true },
+        ]
+    };
 
     function joinPerSlice(svgGroup, angleSortedEdges, arguments) {
         for (let i = 0; i < angleSortedEdges.length; ++i) {
@@ -798,6 +861,7 @@
                     se.isExtension = se.t <= 0;
                     se.isCut = se.t > 0;
                     se.isOvercut = se.t > se.tCutMax;
+                    se.radius = se.e.radius;
                 }
 
                 let done = false;
@@ -805,7 +869,9 @@
                 for (let i = 0; !done && i < 2; ++i) {
                     let se0 = sliceEdges[i];
                     let se1 = sliceEdges[1 - i];
-                    done = methodPerSliceIntersectCut2(svgGroup, se0, se1);
+
+                    methodData = arguments.extensionCutMethod.methodsData[arguments.extensionCutMethod.selectedMethodIndex];
+                    done = methodData.description.function(svgGroup, se0, se1, methodData.arguments);
                 }
 
                 if (!done) {
@@ -840,7 +906,14 @@
         prettyName: "Per Slice",
         function: joinPerSlice,
         parameters: [
-            { name: 'dummy', prettyName: 'Dummy', value: 2, type: 'range', min: 0, max: 10, step: 0.01 },
+            {
+                name: 'extensionCutMethod', prettyName: 'Extension+Cut Slice Method', initialMethodIndex: 3, type: 'method', methods: [
+                    tryExtensionCut0Method,
+                    tryExtensionCut1Method,
+                    tryExtensionCut2Method,
+                    tryExtensionCut3Method,
+                ]
+            },
         ]
     };
 
@@ -852,7 +925,7 @@
             prettyName: "2 edges of different widths",
             edges: [
                 { 'radius': 15, 'angle': 0, 'color': 'blue' },
-                { 'radius': 35, 'angle': 0, 'color': 'red' },
+                { 'radius': 35, 'angle': 160, 'color': 'red' },
             ]
         },
         {
@@ -865,7 +938,7 @@
         },
     ];
     function setScenario(i) {
-        for (e of edges) {
+        for (let e of edges) {
             e.clear();
         }
         edges = [];
@@ -875,6 +948,8 @@
     }
     scenarioParameters = [
         { name: 'scenario', prettyName: 'Scenario', type: 'select', isTitle: 1, options: scenarios, callback: setScenario },
+        { name: 'isAnimated', prettyName: 'Animated', type: 'checkbox', checked: true },
+        { name: 'edgeAngle0', prettyName: 'Edge angle #0', type: 'range', value: 0, step: 0.001, min: -4, max: 4 },
     ]
     parametersDiv.appendChild(createParameterGroup(scenarioParameters, globals));
 
@@ -882,7 +957,8 @@
     patchLimitParameters = [
         {
             name: 'patchLimitMethod', prettyName: 'Patch limit method', type: 'method', isTitle: 1, methods: [
-                patchLimitIndependentMethod,
+                patchLimitUniformMethod,
+                patchLimitIndependentMethod
             ]
         },
     ]
@@ -891,7 +967,7 @@
     // Join Methods
     joinParameters = [
         {
-            name: 'joinMethod', prettyName: 'Join method', type: 'method', isTitle: 1, methods: [
+            name: 'joinMethod', prettyName: 'Join method', type: 'method', isTitle: 1, initialMethodIndex: 2, methods: [
                 drawExtendedOutlines,
                 drawAllOutlineIntersections,
                 joinPerSliceMethod,
@@ -909,7 +985,7 @@
     init();
 
     function update() {
-        for (e of edges) {
+        for (let e of edges) {
             e.update_();
         }
 
@@ -932,7 +1008,13 @@
     //
     function animate(t) {
         // Update scenario
-        edges[0].setAngle(t / 3000);
+        if (globals.isAnimated) {
+            edges[0].setAngle(t / 3000);
+        }
+        else {
+            edges[0].setAngle(globals.edgeAngle0 || 0);
+        }
+
         update();
         // Return whether to stop the animation
         return false;
