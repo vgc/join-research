@@ -520,10 +520,12 @@
         parameters: [
             { name: 'show', prettyName: 'Show', checked: true, type: 'checkbox' },
             { name: 'coefficient', prettyName: 'Coefficient', value: 2.5, type: 'range', min: 0, max: 10, step: 0.01 },
-            { name: 'func', prettyName: 'Function', type: 'select', options: [
-                { prettyName: "minimum", },
-                { prettyName: "maximum", },
-                { prettyName: "average", }] },
+            {
+                name: 'func', prettyName: 'Function', type: 'select', options: [
+                    { prettyName: "minimum", },
+                    { prettyName: "maximum", },
+                    { prettyName: "average", }]
+            },
         ]
     };
 
@@ -832,7 +834,12 @@
         name: "ExtensionCut3",
         function: tryExtensionCut3,
         parameters: [
-            { name: 'mirrorCut', prettyName: 'Mirror cut on wide edge', type: 'checkbox', checked: true },
+            {
+                name: 'mirrorCut',
+                prettyName: 'Mirror cut on wide edge',
+                type: 'checkbox',
+                checked: true
+            },
         ]
     };
 
@@ -906,7 +913,11 @@
         function: joinPerSlice,
         parameters: [
             {
-                name: 'extensionCutMethod', prettyName: 'Extension+Cut Slice Method', initialMethodIndex: 3, type: 'method', methods: [
+                name: 'extensionCutMethod',
+                prettyName: 'Extension+Cut Slice Method',
+                initialMethodIndex: 3,
+                type: 'method',
+                methods: [
                     tryExtensionCut0Method,
                     tryExtensionCut1Method,
                     tryExtensionCut2Method,
