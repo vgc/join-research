@@ -925,6 +925,26 @@
                         }
                         done = true;
                     }
+                    else if (se0.isCut && se1.isCut && !se0.isOvercut && !se1.isOvercut) {
+                        const e0 = se0.e;
+                        const e1 = se1.e;
+                        let pX = se0.e.outlinePoint(se0.side, se0.t);
+                        {
+                            let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
+                            let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
+                            svgGroup.polyline([a.asArray(), b.asArray(), pX.asArray(), joinVertex.asArray()])
+                                .fill({ color: e0.color, opacity: 0.5 })
+                                .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
+                        }
+                        {
+                            let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
+                            let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
+                            svgGroup.polyline([a.asArray(), b.asArray(), pX.asArray(), joinVertex.asArray()])
+                                .fill({ color: e1.color, opacity: 0.5 })
+                                .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
+                        }
+                        done = true;
+                    }
                 }
             }
         }
