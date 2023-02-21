@@ -868,6 +868,7 @@
                     se.isCut = se.t > 0;
                     se.isOvercut = se.t > se.tCutMax;
                     se.radius = se.e.radius;
+                    se.outlineOrigin = se.e.outlineOrigins[se.side];
                 }
 
                 let done = false;
