@@ -273,11 +273,10 @@
 
                 value = argumentsDict[parameterDescription.name];
                 if (value === undefined) {
-                    value = input.checked;
+                    value = parameterDescription.checked || false;
                     argumentsDict[parameterDescription.name] = value;
-                } else {
-                    input.checked = value;
                 }
+                input.checked = value;
 
                 input.addEventListener(
                     'change',
