@@ -840,12 +840,6 @@
         prettyName: "Per Slice",
         function: joinPerSlice,
         parameters: [
-            {
-                name: 'joinMethod2', prettyName: 'Join method2', type: 'method', isTitle: 1, methods: [
-                    drawExtendedOutlines,
-                    drawAllOutlineIntersections,
-                ]
-            },
             { name: 'dummy', prettyName: 'Dummy', value: 2, type: 'range', min: 0, max: 10, step: 0.01 },
         ]
     };
@@ -880,7 +874,6 @@
         }
     }
     scenarioParameters = [
-        { prettyName: 'Scenijjin ario', isTitle: 1 },
         { name: 'scenario', prettyName: 'Scenario', type: 'select', isTitle: 1, options: scenarios, callback: setScenario },
     ]
     parametersDiv.appendChild(createParameterGroup(scenarioParameters, globals));
@@ -899,13 +892,6 @@
     joinParameters = [
         {
             name: 'joinMethod', prettyName: 'Join method', type: 'method', isTitle: 1, methods: [
-                drawExtendedOutlines,
-                drawAllOutlineIntersections,
-                joinPerSliceMethod,
-            ]
-        },
-        {
-            name: 'joinMethod2', prettyName: 'Join method2', type: 'method', isTitle: 1, methods: [
                 drawExtendedOutlines,
                 drawAllOutlineIntersections,
                 joinPerSliceMethod,
