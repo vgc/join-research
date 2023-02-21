@@ -887,23 +887,44 @@
                     if (se0.isExtension && se1.isExtension) {
                         const e0 = se0.e;
                         const e1 = se1.e;
-                        const pX = se0.e.outlinePoint(se0.side, se0.t);
+                        let pX0 = se0.e.outlinePoint(se0.side, se0.t);
+                        let pXM = pX0;
+                        let pX1 = pX0;
+                        const d = Vec2.SUBTRACT(pX0, joinVertex).length();
+                        const l = Number(arguments.miterLimit);
+                        if (d > l) {
+                            const ld = l / d;
+                            const pX = joinVertex.lerp(pX0, ld * ld);
+                            const savedPX0 = new Vec2(pX0);
+                            const N = new Vec2(-pX.y, pX.x);
+                            const t0 = intersectRays(pX, N, se0.outlineOrigin, se0.e.outgoingDirection)[1];
+                            const t1 = intersectRays(pX, N, se1.outlineOrigin, se1.e.outgoingDirection)[1];
+                            if (arguments.sharpTruncate) {
+                                pX0 = se0.outlineOrigin;
+                                pX1 = se1.outlineOrigin;
+                            }
+                            else {
+                                pX0 = se0.e.outlinePoint(se0.side, t0);
+                                pX1 = se1.e.outlinePoint(se1.side, t1);
+                            }
+                            pXM = pX;
+                        }
                         {
                             let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                             let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
-                            svgGroup.polyline([a.asArray(), b.asArray(), pX.asArray(), joinVertex.asArray()])
+                            svgGroup.polyline([a.asArray(), b.asArray(), pX0.asArray(), pXM.asArray(), joinVertex.asArray()])
                                 .fill({ color: e0.color, opacity: 0.5 })
                                 .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
                         }
                         {
                             let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                             let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
-                            svgGroup.polyline([a.asArray(), b.asArray(), pX.asArray(), joinVertex.asArray()])
+                            svgGroup.polyline([a.asArray(), b.asArray(), pX1.asArray(), pXM.asArray(), joinVertex.asArray()])
                                 .fill({ color: e1.color, opacity: 0.5 })
                                 .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
                         }
+                        done = true;
                     }
-                    done = true;
                 }
             }
         }
@@ -925,6 +946,9 @@
                     tryExtensionCut3Method,
                 ]
             },
+            { name: 'miterLimit', prettyName: 'Miter Limit', type: 'range', value: 100, step: 0.001, min: 0, max: 200 },
+            { name: 'sharpTruncate', prettyName: 'Miter Limit Clip Sharp', type: 'checkbox', checked: false },
+
         ]
     };
 
