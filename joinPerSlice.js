@@ -113,13 +113,14 @@ function joinPerSliceMethodDescription() {
             {
                 name: 'extensionCutMethod',
                 prettyName: 'Extension+Cut Slice Method',
-                initialMethodIndex: 3,
+                initialMethodIndex: 4,
                 type: 'method',
                 methods: [
                     tryExtensionCut0Method,
                     tryExtensionCut1Method,
                     tryExtensionCut2Method,
-                    tryExtensionCut3Method
+                    tryExtensionCut3Method,
+                    tryExtensionCut4Method
                 ]
             },
             { name: 'miterLimit', prettyName: 'Miter Limit', type: 'range', value: 2, step: 0.001, min: 0, max: 10 },
