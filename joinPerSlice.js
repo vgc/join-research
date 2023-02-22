@@ -22,7 +22,7 @@ function joinPerSlice(svgGroup, angleSortedEdges, arguments) {
                 se.isExtension = se.t <= 0;
                 se.isCut = se.t > 0;
                 se.isOvercut = se.t > se.tCutMax;
-                se.radius = se.e.radius;
+                se.radius = se.e.radii[se.side];
                 se.outlineOrigin = se.e.outlineOrigins[se.side];
             }
 
@@ -113,19 +113,22 @@ function joinPerSliceMethodDescription() {
             {
                 name: 'extensionCutMethod',
                 prettyName: 'Extension+Cut Slice Method',
-                initialMethodIndex: 4,
+                initialMethodIndex: 8,
                 type: 'method',
                 methods: [
                     tryExtensionCut0Method,
                     tryExtensionCut1Method,
                     tryExtensionCut2Method,
                     tryExtensionCut3Method,
-                    tryExtensionCut4Method
+                    tryExtensionCut4Method,
+                    tryExtensionCut5Method,
+                    tryExtensionCut6Method,
+                    tryExtensionCut7Method,
+                    tryExtensionCut8Method
                 ]
             },
             { name: 'miterLimit', prettyName: 'Miter Limit', type: 'range', value: 2, step: 0.001, min: 0, max: 10 },
             { name: 'sharpTruncate', prettyName: 'Miter Limit Clip Sharp', type: 'checkbox', checked: false },
-
         ]
     };
 }

@@ -18,6 +18,10 @@
     <script src="./extensionCut2.js"></script>
     <script src="./extensionCut3.js"></script>
     <script src="./extensionCut4.js"></script>
+    <script src="./extensionCut5.js"></script>
+    <script src="./extensionCut6.js"></script>
+    <script src="./extensionCut7.js"></script>
+    <script src="./extensionCut8.js"></script>
     <script src="./joinPerSlice.js"></script>
     <script src="./scenarios.js"></script>
     <link type="text/css" rel="stylesheet" href="./style.css">
@@ -300,6 +304,7 @@
         constructor(edgeDescription) {
             this.length = edgeLength;
             this.radius = edgeDescription.radius;
+            this.radii = [this.radius, this.radius]
             this.angle = edgeDescription.angle;
             this.color = edgeDescription.color;
             this.originalShapeSvgGroup = svg.group();
@@ -445,7 +450,7 @@
     scenarioParameters = [
         { name: 'scenario', prettyName: 'Scenario', type: 'select', isTitle: 1, options: scenarios, callback: setScenario },
         { name: 'isAnimated', prettyName: 'Animated', type: 'checkbox', checked: false },
-        { name: 'edgeAngle0', prettyName: 'Edge angle #0', type: 'range', value: 0, step: 0.001, min: -4, max: 4 },
+        { name: 'edgeAngle0', prettyName: 'Edge angle #0', type: 'range', value: 0, step: 0.00001, min: -4, max: 4 },
     ]
     parametersDiv.appendChild(createParameterGroup(scenarioParameters, globals));
 
