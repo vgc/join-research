@@ -240,7 +240,7 @@
 
                 value = argumentsDict[parameterDescription.name];
                 if (value === undefined) {
-                    value = parameterDescription.initialMethodIndex || 0;
+                    value = parameterDescription.initialOptionIndex || 0;
                     argumentsDict[parameterDescription.name] = value;
                 }
                 select.selectedIndex = value;
@@ -521,7 +521,7 @@
             { name: 'show', prettyName: 'Show', checked: true, type: 'checkbox' },
             { name: 'coefficient', prettyName: 'Coefficient', value: 2.5, type: 'range', min: 0, max: 10, step: 0.01 },
             {
-                name: 'func', prettyName: 'Function', type: 'select', options: [
+                name: 'func', prettyName: 'Function', type: 'select', initialOptionIndex: 2, options: [
                     { prettyName: "minimum", },
                     { prettyName: "maximum", },
                     { prettyName: "average", }]
