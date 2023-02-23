@@ -43,6 +43,7 @@
     const Rect2 = VECTOR2.Rect2;
     const Transform2 = VECTOR2.Transform2;
     Vec2.prototype.isNormalized = Vec2.prototype.isNormalised
+    Vec2.prototype.orthogonalized = (v) => new Vec2(-v.y, v.x);
     Vec2.DET = function (a, b) { return a.x * b.y - a.y * b.x; }
 
     // Global parameters.
@@ -51,7 +52,7 @@
 
     height = 600;
     width = 600;
-    edgeLength = 250;
+    edgeLength = 300;
     let joinVertex = new Vec2(0, 0);
 
     var globalparameterDescriptions = [
@@ -322,6 +323,9 @@
 
         setAngle(angle) {
             this.angle = angle % (Math.PI * 2);
+            if (this.angle < 0) {
+                this.angle += Math.PI * 2;
+            }
             this.applyTransform_();
         }
 
