@@ -8,10 +8,8 @@ function computePatchLimitsUniform(svgGroup, angleSortedEdges, arguments) {
     v[2] = v[2] / edges.length;
     tCutMax = v[arguments.func] * arguments.coefficient;
     for (let e of edges) {
-        e.tCutMax = [
-            tCutMax,
-            tCutMax
-        ];
+        let t = Math.min(tCutMax, e.length);
+        e.tCutMax = [t, t];
         if (arguments.show) {
             drawPatchLimits(svgGroup, e);
         }

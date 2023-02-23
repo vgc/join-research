@@ -1,10 +1,7 @@
 function computePatchLimitsIndependent(svgGroup, angleSortedEdges, arguments) {
     for (let e of edges) {
-        tCutMax = arguments.coefficient * e.radius;
-        e.tCutMax = [
-            tCutMax,
-            tCutMax
-        ];
+        tCutMax = Math.min(arguments.coefficient * e.radius, e.length);
+        e.tCutMax = [tCutMax, tCutMax];
         if (arguments.show) {
             drawPatchLimits(svgGroup, e);
         }
