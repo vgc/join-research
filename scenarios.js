@@ -7,6 +7,13 @@ var scenarios = [
         ]
     },
     {
+        prettyName: "2 edges of same widths",
+        edges: [
+            { 'radius': 50, 'angle': 0, 'color': 'blue' },
+            { 'radius': 50, 'angle': 160, 'color': 'red' },
+        ]
+    },
+    {
         prettyName: "3 edges of different widths",
         edges: [
             { 'radius': 40, 'angle': 0, 'color': 'blue' },
