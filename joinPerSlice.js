@@ -42,39 +42,44 @@ function joinPerSlice(svgGroup, angleSortedEdges, arguments) {
                 if (se0.isExtension && se1.isExtension) {
                     const e0 = se0.e;
                     const e1 = se1.e;
-                    let pX0 = se0.e.outlinePoint(se0.side, se0.t);
-                    let pXM = pX0;
-                    let pX1 = pX0;
-                    const d = Vec2.SUBTRACT(pX0, joinVertex).length();
+                    let p0 = se0.outlineOrigin;
+                    let p1 = se1.outlineOrigin;
+                    let pX = e0.outlinePoint(se0.side, se0.t);
+
+                    const d = Vec2.SUBTRACT(pX, joinVertex).length();
                     const l = arguments.miterLimit * Math.max(se0.radius, se1.radius);
                     if (d > l) {
                         const ld = l / d;
-                        const pX = joinVertex.lerp(pX0, ld * ld);
-                        const savedPX0 = new Vec2(pX0);
-                        const N = new Vec2(-pX.y, pX.x);
-                        const t0 = intersectRays(pX, N, se0.outlineOrigin, se0.e.outgoingDirection)[1];
-                        const t1 = intersectRays(pX, N, se1.outlineOrigin, se1.e.outgoingDirection)[1];
-                        if (arguments.sharpTruncate) {
-                            pX0 = se0.outlineOrigin;
-                            pX1 = se1.outlineOrigin;
-                        }
-                        else {
-                            pX0 = se0.e.outlinePoint(se0.side, Math.min(t0, 0));
-                            pX1 = se1.e.outlinePoint(se1.side, Math.min(t1, 0));
-                        }
-                        pXM = pX;
+                        const t = ld * ld;
+                        p0 = p0.lerp(pX, t);
+                        p1 = p1.lerp(pX, t);
+
+                        const splitSeg = Vec2.SUBTRACT(pX, joinVertex);
+                        tX = intersectRays(
+                            joinVertex,
+                            splitSeg,
+                            p0,
+                            Vec2.SUBTRACT(p1, p0))[0];
+                        pX = Vec2.ADD(joinVertex, splitSeg.scaled(tX));
                     }
+
+                    // restore p0 and p1 if we want the pointy miter
+                    if (arguments.sharpTruncate) {
+                        p0 = se0.outlineOrigin;
+                        p1 = se1.outlineOrigin;
+                    }
+
                     {
                         let a = Vec2.ADD(joinVertex, e0.outgoingDirection.scaled(e0.length));
                         let b = Vec2.ADD(e0.outlineOrigins[se0.side], e0.outgoingDirection.scaled(e0.length));
-                        svgGroup.polyline([a.asArray(), b.asArray(), pX0.asArray(), pXM.asArray(), joinVertex.asArray()])
+                        svgGroup.polyline([a.asArray(), b.asArray(), p0.asArray(), pX.asArray(), joinVertex.asArray()])
                             .fill({ color: e0.color, opacity: 0.5 })
                             .stroke({ color: e0.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
                     }
                     {
                         let a = Vec2.ADD(joinVertex, e1.outgoingDirection.scaled(e1.length));
                         let b = Vec2.ADD(e1.outlineOrigins[se1.side], e1.outgoingDirection.scaled(e1.length));
-                        svgGroup.polyline([a.asArray(), b.asArray(), pX1.asArray(), pXM.asArray(), joinVertex.asArray()])
+                        svgGroup.polyline([a.asArray(), b.asArray(), p1.asArray(), pX.asArray(), joinVertex.asArray()])
                             .fill({ color: e1.color, opacity: 0.5 })
                             .stroke({ color: e1.color, opacity: 1.0, width: globals.inputGeometryStrokeWidth });
                     }
@@ -131,7 +136,7 @@ function joinPerSliceMethodDescription() {
                     allCasesMinRadius3Method
                 ]
             },
-            { name: 'miterLimit', prettyName: 'Miter Limit', type: 'range', value: 2, step: 0.001, min: 0, max: 10 },
+            { name: 'miterLimit', prettyName: 'Miter Limit', type: 'range', value: 4, step: 0.001, min: 0, max: 15 },
             { name: 'sharpTruncate', prettyName: 'Miter Limit Clip Sharp', type: 'checkbox', checked: false },
         ]
     };
