@@ -118,7 +118,7 @@ function joinPerSliceMethodDescription() {
             {
                 name: 'extensionCutMethod',
                 prettyName: 'Extension+Cut Slice Method',
-                initialMethodIndex: 12,
+                initialMethodIndex: 9,
                 type: 'method',
                 methods: [
                     tryExtensionCut0Method,
@@ -130,6 +130,7 @@ function joinPerSliceMethodDescription() {
                     tryExtensionCut6Method,
                     tryExtensionCut7Method,
                     tryExtensionCut8Method,
+                    tryExtensionCut9Method,
                     allCasesMinRadius0Method,
                     allCasesMinRadius1Method,
                     allCasesMinRadius2Method,
