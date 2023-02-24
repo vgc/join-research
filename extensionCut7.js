@@ -40,6 +40,7 @@ function tryExtensionCut7(svgGroup, se0, se1, arguments) {
 
             if (se1.t > tCutA) {
                 let c = tCutA / se1.t;
+                // c is squared (compared to extensionCut6)
                 c = c * c;
                 t1 = tCutA * c;
                 t0 = (1 - c) * se0.tCutMax;
