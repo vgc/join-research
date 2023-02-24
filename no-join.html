@@ -182,6 +182,20 @@
                         };
                     })(argumentsDict, parameterDescription.name)
                 );
+
+                select.addEventListener('wheel', function (e) {
+                    if (this.hasFocus) {
+                        return;
+                    }
+                    if (e.deltaY < 0) {
+                        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+                    }
+                    if (e.deltaY > 0) {
+                        this.selectedIndex = Math.min(this.selectedIndex + 1, this.length - 1);
+                    }
+                    e.preventDefault();
+                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                });
             }
             else if (parameterDescription.type == 'select') {
                 let select = document.createElement("select");
@@ -199,8 +213,9 @@
                     argumentsDict[parameterDescription.name] = value;
                 }
                 select.selectedIndex = value;
-
                 paramDiv.append(select);
+
+                // change event handler
                 select.addEventListener(
                     'change',
                     ((argumentsDict, name, callback) => {
@@ -214,6 +229,20 @@
                         };
                     })(argumentsDict, parameterDescription.name, parameterDescription.callback)
                 );
+
+                select.addEventListener('wheel', function (e) {
+                    if (this.hasFocus) {
+                        return;
+                    }
+                    if (e.deltaY < 0) {
+                        this.selectedIndex = Math.max(this.selectedIndex - 1, 0);
+                    }
+                    if (e.deltaY > 0) {
+                        this.selectedIndex = Math.min(this.selectedIndex + 1, this.length - 1);
+                    }
+                    e.preventDefault();
+                    this.dispatchEvent(new Event('change', { bubbles: true }));
+                });
             }
             else if (parameterDescription.type == 'checkbox') {
                 let input = document.createElement("input");
@@ -257,7 +286,6 @@
                     }
                     input.setAttribute(key, value);
                 }
-                paramDiv.append(input);
 
                 value = argumentsDict[parameterDescription.name];
                 if (value === undefined) {
@@ -267,16 +295,67 @@
                     input.value = value;
                 }
 
-                input.addEventListener(
-                    parameterDescription.type === 'range' ? 'input' : 'change',
-                    ((argumentsDict, name) => {
-                        return (event) => {
-                            value = event.target.value;
-                            argumentsDict[name] = value;
-                            onParameterValueChanged();
-                        };
-                    })(argumentsDict, parameterDescription.name)
-                );
+                if (parameterDescription.type == 'range') {
+                    let input2 = document.createElement("input");
+                    input2.value = value;
+                    paramDiv.append(input2);
+                    paramDiv.append(input);
+
+                    input2.addEventListener(
+                        'input',
+                        ((argumentsDict, name) => {
+                            return (event) => {
+                                value = event.target.value;
+                                event.target.nextElementSibling.value = value;
+                                argumentsDict[name] = value;
+                                onParameterValueChanged();
+                            };
+                        })(argumentsDict, parameterDescription.name)
+                    );
+
+
+                    input2.addEventListener('wheel', function (e) {
+                        if (this.hasFocus) {
+                            return;
+                        }
+                        range = event.target.nextElementSibling;
+                        if (e.deltaY < 0) {
+                            // browser's step arithmetic is smart and does not end up with things like:
+                            // 0.26 + 0.01 = 0.270000000000002
+                            range.stepUp();
+                        }
+                        if (e.deltaY > 0) {
+                            range.stepDown();
+                        }
+                        e.preventDefault();
+                        range.dispatchEvent(new Event('input', { bubbles: true }));
+                    });
+
+                    input.addEventListener(
+                        'input',
+                        ((argumentsDict, name) => {
+                            return (event) => {
+                                value = event.target.value;
+                                event.target.previousElementSibling.value = value;
+                                argumentsDict[name] = value;
+                                onParameterValueChanged();
+                            };
+                        })(argumentsDict, parameterDescription.name)
+                    );
+                }
+                else {
+                    paramDiv.append(input);
+                    input.addEventListener(
+                        'change',
+                        ((argumentsDict, name) => {
+                            return (event) => {
+                                value = event.target.value;
+                                argumentsDict[name] = value;
+                                onParameterValueChanged();
+                            };
+                        })(argumentsDict, parameterDescription.name)
+                    );
+                }
             }
         }
         return groupDiv;
@@ -458,7 +537,7 @@
     scenarioParameters = [
         { name: 'scenario', prettyName: 'Scenario', type: 'select', isTitle: 1, options: scenarios, callback: setScenario },
         { name: 'isAnimated', prettyName: 'Animated', type: 'checkbox', checked: false },
-        { name: 'edgeAngle0', prettyName: 'Edge angle #0', type: 'range', value: 0, step: 0.00001, min: -4, max: 4 },
+        { name: 'edgeAngle0', prettyName: 'Edge angle #0', type: 'range', value: 0, step: 0.01, min: -4, max: 4 },
     ]
     parametersDiv.appendChild(createParameterGroup(scenarioParameters, globals));
 
