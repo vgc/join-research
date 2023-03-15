@@ -384,13 +384,52 @@
     Side.prototype.toString = function () { return String(this.index); }
     sides = [Side.Left, Side.Right];
 
+    function calcAnimValue(val0, anim, t) {
+        if (anim === undefined) {
+            return val0;
+        }
+        let t0 = 0;
+        let v0 = val0;
+        t = t % anim.last()[0];
+        for (let x of anim) {
+            if (x[0] > t) {
+                let t1 = x[0];
+                let v1 = x[1];
+                let u = (t - t0) / (t1 - t0);
+                return v0 * (1 - u) + v1 * u;
+            }
+            t0 = x[0];
+            v0 = x[1];
+        }
+    }
+
     // Edge class
     class Edge {
         constructor(edgeDescription) {
             this.length = edgeLength;
             this.radius = edgeDescription.radius;
+            this.radius0 = this.radius;
             this.radii = [this.radius, this.radius]
-            this.angle = edgeDescription.angle;
+            this.angle = edgeDescription.angle / 180 * Math.PI;
+            this.angle0 = this.angle;
+            this.angleAnim = edgeDescription.angleAnim;
+            let t;
+            if (this.angleAnim !== undefined) {
+                t = 0;
+                for (let x of this.angleAnim) {
+                    t += x[0]
+                    x[0] = t;
+                    x[1] = x[1] / 180 * Math.PI;
+                }
+            }
+            this.relRadiusAnim = edgeDescription.relRadiusAnim;
+            if (this.relRadiusAnim !== undefined) {
+                t = 0;
+                for (let x of this.relRadiusAnim) {
+                    t += x[0]
+                    x[0] = t;
+                }
+            }
             this.color = edgeDescription.color;
             this.originalShapeSvgGroup = svg.group();
             this.inputGeometrySvg = this.originalShapeSvgGroup
@@ -414,6 +453,15 @@
 
         setRadius(radius) {
             this.radius = radius;
+            this.originalShapeSvgGroup.clear();
+            this.inputGeometrySvg = this.originalShapeSvgGroup
+                .rect(this.length, this.radius * 2)
+                .fill({ color: this.color, opacity: globals.inputGeometryFillOpacity })
+                .stroke({ color: this.color, opacity: globals.inputGeometryStrokeOpacity, width: globals.inputGeometryStrokeWidth });
+            this.centerLineSvg = this.originalShapeSvgGroup
+                .line(0, this.radius, this.length, this.radius)
+                .stroke({ color: this.color, opacity: globals.inputGeometryStrokeOpacity, width: globals.inputGeometryStrokeWidth });
+            this.centerLineSvg.attr('stroke-dasharray', "4");
             this.applyTransform_();
         }
 
@@ -593,15 +641,19 @@
 
     var resultSvgGroup = svg.group();
     // Perform your animation here.
-    // t is in milliseconds.
+    // t is in seconds.
     //
     function animate(t) {
         // Update scenario
-        if (globals.isAnimated) {
-            edges[0].setAngle(t / 3000);
-        }
-        else {
-            edges[0].setAngle(globals.edgeAngle0 || 0);
+        for (let e of edges) {
+            if (globals.isAnimated) {
+                e.setAngle(calcAnimValue(e.angle0, e.angleAnim, t));
+                e.setRadius(calcAnimValue(1, e.relRadiusAnim, t) * e.radius0);
+            }
+            else {
+                e.setAngle(e.angle0);
+                e.setRadius(e.radius0);
+            }
         }
 
         update();
@@ -616,7 +668,7 @@
         }
         const elapsed = timestamp - start;
         if (previousTimeStamp !== timestamp) {
-            done = animate(elapsed);
+            done = animate(elapsed / 1000);
         }
         previousTimeStamp = timestamp;
         if (!done) {

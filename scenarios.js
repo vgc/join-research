@@ -2,8 +2,10 @@ var scenarios = [
     {
         prettyName: "2 edges of different widths",
         edges: [
-            { 'radius': 30, 'angle': 0, 'color': 'blue' },
-            { 'radius': 200, 'angle': 160, 'color': 'red' },
+            { 'radius': 30, 'angle': 0, 'color': 'blue',
+              'angleAnim': [[10, 360], [0, 0], [6, 360], [0, 0], [3, 360], [0, 0], [1, 360]],
+              'relRadiusAnim': [[10, 2.5], [0, 1], [10, 2.5]] },
+            { 'radius': 200, 'angle': 180, 'color': 'red' },
         ]
     },
     {
