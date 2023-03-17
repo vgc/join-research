@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <title>No join</title>
+    <title>Compare join methods</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
@@ -61,7 +61,7 @@
 
     var globalparameterDescriptions = [
         { name: 'inputGeometryFillOpacity', prettyName: 'Fill opacity of input geometry', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
-        { name: 'inputGeometryStrokeOpacity', prettyName: 'Stroke opacity of input geometry', value: 0.4, type: 'range', min: 0, max: 1, step: 0.01 },
+        { name: 'inputGeometryStrokeOpacity', prettyName: 'Stroke opacity of input geometry', value: 0.1, type: 'range', min: 0, max: 1, step: 0.01 },
         { name: 'inputGeometryStrokeWidth', prettyName: 'Stroke width of input geometry', value: 2.6, type: 'range', min: 0, max: 10, step: 0.01 },
     ];
     var globals = {};
@@ -412,7 +412,7 @@
             this.radii = [this.radius, this.radius]
             this.angle = edgeDescription.angle / 180 * Math.PI;
             this.angle0 = this.angle;
-            this.angleAnim = edgeDescription.angleAnim;
+            this.angleAnim = structuredClone(edgeDescription.angleAnim);
             let t;
             if (this.angleAnim !== undefined) {
                 t = 0;
@@ -422,7 +422,7 @@
                     x[1] = x[1] / 180 * Math.PI;
                 }
             }
-            this.relRadiusAnim = edgeDescription.relRadiusAnim;
+            this.relRadiusAnim = structuredClone(edgeDescription.relRadiusAnim);
             if (this.relRadiusAnim !== undefined) {
                 t = 0;
                 for (let x of this.relRadiusAnim) {
@@ -517,7 +517,7 @@
         const ddetInv = 1 / ddet;
         const t0 = Vec2.DET(w, d1) * ddetInv;
         const t1 = Vec2.DET(w, d0) * ddetInv;
-        return [t0, t1]
+        return [t0, t1];
     }
 
     function computeOutlineIntersections(edges) {
@@ -582,11 +582,41 @@
         for (const edgeDescription of scenarios[i].edges) {
             edges.push(new Edge(edgeDescription));
         }
+        const parameterInputs = document.querySelectorAll('.parameter-input');
+        parameterInputs.forEach((parameterInput) => {
+            if (parameterInput.name == 'edge0Angle' && edges.length > 0) {
+                globals.edge0Angle = edges[0].angle0;
+                parameterInput.value = edges[0].angle0;
+            }
+            if (parameterInput.name == 'edge1Angle' && edges.length > 1) {
+                globals.edge1Angle = edges[1].angle0;
+                parameterInput.value = edges[1].angle0;
+            }
+            if (parameterInput.name == 'edge2Angle' && edges.length > 2) {
+                globals.edge1Angle = edges[2].angle0;
+                parameterInput.value = edges[2].angle0;
+            }
+        });
+        parameterInputs.forEach((parameterInput) => {
+            if (parameterInput.name == 'edge0Angle' && edges.length > 0) {
+                parameterInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (parameterInput.name == 'edge1Angle' && edges.length > 1) {
+                parameterInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+            if (parameterInput.name == 'edge2Angle' && edges.length > 2) {
+                parameterInput.dispatchEvent(new Event('input', { bubbles: true }));
+            }
+        });
+
+
     }
     scenarioParameters = [
         { name: 'scenario', prettyName: 'Scenario', type: 'select', isTitle: 1, options: scenarios, callback: setScenario },
         { name: 'isAnimated', prettyName: 'Animated', type: 'checkbox', checked: false },
-        { name: 'edgeAngle0', prettyName: 'Edge angle #0', type: 'range', value: 0, step: 0.01, min: -4, max: 4 },
+        { name: 'edge0Angle', prettyName: 'Edge 0 angle', type: 'range', value: 0, step: 0.01, min: -4, max: 4 },
+        { name: 'edge1Angle', prettyName: 'Edge 1 angle', type: 'range', value: 0, step: 0.01, min: -4, max: 4 },
+        { name: 'edge2Angle', prettyName: 'Edge 2 angle', type: 'range', value: 0, step: 0.01, min: -4, max: 4 },
     ]
     parametersDiv.appendChild(createParameterGroup(scenarioParameters, globals));
 
@@ -630,13 +660,16 @@
         angleSortedEdges = sortByAngleAndAssignIndex(edges);
         computeOutlineIntersections(angleSortedEdges);
 
-        resultSvgGroup.clear();
+        if (resultSvgGroup) {
 
-        patchLimitMethodData = globals.patchLimitMethod.methodsData[globals.patchLimitMethod.selectedMethodIndex];
-        patchLimitMethodData.description.function(resultSvgGroup, angleSortedEdges, patchLimitMethodData.arguments);
+            resultSvgGroup.clear();
 
-        joinMethodData = globals.joinMethod.methodsData[globals.joinMethod.selectedMethodIndex];
-        joinMethodData.description.function(resultSvgGroup, angleSortedEdges, joinMethodData.arguments);
+            patchLimitMethodData = globals.patchLimitMethod.methodsData[globals.patchLimitMethod.selectedMethodIndex];
+            patchLimitMethodData.description.function(resultSvgGroup, angleSortedEdges, patchLimitMethodData.arguments);
+
+            joinMethodData = globals.joinMethod.methodsData[globals.joinMethod.selectedMethodIndex];
+            joinMethodData.description.function(resultSvgGroup, angleSortedEdges, joinMethodData.arguments);
+        }
     }
 
     var resultSvgGroup = svg.group();
@@ -658,7 +691,15 @@
                 e.setAngle(e.angle0);
                 e.setRadius(e.radius0);
             }
-            edges[0].setAngle(globals.edgeAngle0 || 0);
+            if (edges.length > 0) {
+                edges[0].setAngle(globals.edge0Angle || 0);
+            }
+            if (edges.length > 1) {
+                edges[1].setAngle(globals.edge1Angle || 0);
+            }
+            if (edges.length > 2) {
+                edges[2].setAngle(globals.edge2Angle || 0);
+            }
         }
 
         update();
