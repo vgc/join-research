@@ -640,23 +640,29 @@
     }
 
     var resultSvgGroup = svg.group();
+
     // Perform your animation here.
     // t is in seconds.
     //
     function animate(t) {
+
         // Update scenario
-        for (let e of edges) {
-            if (globals.isAnimated) {
+        if (globals.isAnimated) {
+            for (let e of edges) {
                 e.setAngle(calcAnimValue(e.angle0, e.angleAnim, t));
                 e.setRadius(calcAnimValue(1, e.relRadiusAnim, t) * e.radius0);
             }
-            else {
+        }
+        else {
+            for (let e of edges) {
                 e.setAngle(e.angle0);
                 e.setRadius(e.radius0);
             }
+            edges[0].setAngle(globals.edgeAngle0 || 0);
         }
 
         update();
+
         // Return whether to stop the animation
         return false;
     }
